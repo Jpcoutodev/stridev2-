@@ -97,6 +97,20 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack }) =
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
+    const fetchUserCounts = async (userId: string) => {
+        const [postsCount, followersCount, followingCount] = await Promise.all([
+            supabase.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+            supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId).eq('status', 'accepted'),
+            supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId).eq('status', 'accepted')
+        ]);
+
+        return {
+            posts: postsCount.count || 0,
+            followers: followersCount.count || 0,
+            following: followingCount.count || 0
+        };
+    };
+
     const fetchUserPosts = async (userId: string) => {
         const { data } = await supabase
             .from('posts')
@@ -129,7 +143,8 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack }) =
                 const cleanTarget = targetUsername.replace('@', '');
                 const { data } = await supabase.from('profiles').select('*').eq('username', cleanTarget).single();
                 if (data) {
-                    setSelectedUser(data);
+                    const counts = await fetchUserCounts(data.id);
+                    setSelectedUser({ ...data, ...counts });
                     fetchUserPosts(data.id);
                 }
             } else {
@@ -361,7 +376,11 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack }) =
                         return (
                             <div
                                 key={user.id}
-                                onClick={() => { setSelectedUser(user); fetchUserPosts(user.id); }}
+                                onClick={async () => {
+                                    const counts = await fetchUserCounts(user.id);
+                                    setSelectedUser({ ...user, ...counts });
+                                    fetchUserPosts(user.id);
+                                }}
                                 className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-between active:scale-[0.99]"
                             >
                                 <div className="flex items-center gap-3">
