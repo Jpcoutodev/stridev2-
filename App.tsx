@@ -44,6 +44,7 @@ const App: React.FC = () => {
 
   // Profile Navigation State
   const [targetProfileUser, setTargetProfileUser] = useState<string | null>(null);
+  const [targetMessageUser, setTargetMessageUser] = useState<string | null>(null);
 
   // Scroll Logic for Header Hiding
   const [showHeader, setShowHeader] = useState(true);
@@ -622,14 +623,40 @@ const App: React.FC = () => {
         {currentView === 'nutrition' && <NutritionScreen />}
         {currentView === 'stopwatch' && <StopwatchScreen />}
         {currentView === 'profile' && <ProfileScreen onLogout={handleLogout} onUpdate={handleProfileUpdate} />}
-        {currentView === 'search' && <SearchScreen targetUsername={targetProfileUser} onBack={handleBackFromSearch} />}
-        {currentView === 'messages' && <MessagesScreen onBack={() => setCurrentView('home')} />}
+        {currentView === 'search' && (
+          <SearchScreen
+            targetUsername={targetProfileUser}
+            onBack={handleBackFromSearch}
+            onMessageClick={(userId) => {
+              setTargetMessageUser(userId);
+              setCurrentView('messages');
+            }}
+          />
+        )}
+        {currentView === 'messages' && (
+          <MessagesScreen
+            onBack={() => {
+              setCurrentView('home');
+              setTargetMessageUser(null);
+            }}
+            targetUserId={targetMessageUser}
+          />
+        )}
         {currentView === 'notifications' && (
           <NotificationsScreen
             onBack={() => setCurrentView('home')}
             onUserClick={(username) => {
               setTargetProfileUser(username);
               setCurrentView('search');
+            }}
+            onNotificationClick={(notif) => {
+              if (notif.type === 'message') {
+                setTargetMessageUser(notif.actor_id);
+                setCurrentView('messages');
+              } else {
+                setTargetProfileUser(notif.actor?.username);
+                setCurrentView('search');
+              }
             }}
           />
         )}

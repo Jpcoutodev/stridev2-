@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, UserPlus, UserCheck, ChevronLeft, MapPin, Grid, Users, ArrowLeft, Dumbbell, Lock, Clock, Loader2 } from 'lucide-react';
+import { Search, UserPlus, UserCheck, ChevronLeft, MapPin, Grid, Users, ArrowLeft, Dumbbell, Lock, Clock, Loader2, MessageCircle } from 'lucide-react';
 import { PostModel } from '../types';
 import PostCard from './PostCard';
 import { supabase } from '../supabaseClient';
@@ -20,9 +20,10 @@ interface UserProfile {
 interface SearchScreenProps {
     targetUsername?: string | null;
     onBack?: () => void;
+    onMessageClick?: (userId: string) => void;
 }
 
-const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack }) => {
+const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack, onMessageClick }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(false);
@@ -265,6 +266,14 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack }) =
                     >
                         <ArrowLeft size={24} />
                     </button>
+                    {currentUserId !== selectedUser.id && (
+                        <button
+                            onClick={() => onMessageClick?.(selectedUser.id)}
+                            className="bg-white/80 backdrop-blur-md p-2 rounded-full shadow-sm hover:bg-white text-cyan-600 transition-colors"
+                        >
+                            <MessageCircle size={24} />
+                        </button>
+                    )}
                 </div>
 
                 <div className="bg-white pb-6 pt-16 px-6 rounded-b-[40px] shadow-sm mb-6 relative overflow-hidden">
@@ -279,13 +288,21 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack }) =
                             <MapPin size={12} className="mr-1" /> {selectedUser.location || 'Sem local'}
                         </div>
                         {currentUserId !== selectedUser.id && (
-                            <button
-                                onClick={(e) => handleFollowAction(e, selectedUser)}
-                                className={`px-8 py-2.5 rounded-full font-bold text-sm transition-all shadow-lg active:scale-[0.98] flex items-center gap-2 ${btnConfig.style}`}
-                            >
-                                {btnConfig.icon}
-                                {btnConfig.text}
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={(e) => handleFollowAction(e, selectedUser)}
+                                    className={`px-8 py-2.5 rounded-full font-bold text-sm transition-all shadow-lg active:scale-[0.98] flex items-center gap-2 ${btnConfig.style}`}
+                                >
+                                    {btnConfig.icon}
+                                    {btnConfig.text}
+                                </button>
+                                <button
+                                    onClick={() => onMessageClick?.(selectedUser.id)}
+                                    className="p-2.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 transition-all active:scale-95"
+                                >
+                                    <MessageCircle size={20} />
+                                </button>
+                            </div>
                         )}
                         <div className="flex items-center gap-8 w-full justify-center mt-6">
                             <div className="flex flex-col items-center">

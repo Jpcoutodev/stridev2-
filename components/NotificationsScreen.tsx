@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, UserPlus, Heart, MessageCircle, Check, X, ShieldAlert, Loader2, Clock } from 'lucide-react';
+import { ArrowLeft, UserPlus, Heart, MessageCircle, Check, X, ShieldAlert, Loader2, Clock, Send } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 interface NotificationsScreenProps {
     onBack: () => void;
     onUserClick: (username: string) => void;
+    onNotificationClick?: (notif: any) => void;
 }
 
 interface Notification {
@@ -36,7 +37,7 @@ interface FollowRequest {
     };
 }
 
-const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUserClick }) => {
+const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUserClick, onNotificationClick }) => {
     const [loading, setLoading] = useState(true);
     const [requests, setRequests] = useState<FollowRequest[]>([]);
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -255,6 +256,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUse
                                 notif={notif}
                                 formatTime={formatTime}
                                 onUserClick={onUserClick}
+                                onNotificationClick={onNotificationClick}
                             />
                         ))
                     ) : (
@@ -278,12 +280,13 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUse
 };
 
 // Helper Component for Notification Row
-const NotificationItem: React.FC<{ notif: any, formatTime: (d: string) => string, onUserClick: (u: string) => void }> = ({ notif, formatTime, onUserClick }) => {
+const NotificationItem: React.FC<{ notif: any, formatTime: (d: string) => string, onUserClick: (u: string) => void, onNotificationClick?: (n: any) => void }> = ({ notif, formatTime, onUserClick, onNotificationClick }) => {
 
     const getIcon = () => {
         switch (notif.type) {
             case 'like': return <Heart size={8} fill="currentColor" />;
             case 'comment': return <MessageCircle size={8} fill="currentColor" />;
+            case 'message': return <Send size={8} fill="currentColor" />; // Use Send icon for DMs
             case 'new_follower':
             case 'follow_request':
             case 'follow_accept': return <UserPlus size={8} fill="currentColor" />;
@@ -295,6 +298,7 @@ const NotificationItem: React.FC<{ notif: any, formatTime: (d: string) => string
         switch (notif.type) {
             case 'like': return 'bg-red-500';
             case 'comment': return 'bg-cyan-500';
+            case 'message': return 'bg-lime-500';
             case 'new_follower':
             case 'follow_request':
             case 'follow_accept': return 'bg-purple-500';
@@ -310,6 +314,7 @@ const NotificationItem: React.FC<{ notif: any, formatTime: (d: string) => string
             case 'new_follower': return 'começou a seguir você.';
             case 'follow_request': return 'enviou uma solicitação para seguir você.';
             case 'follow_accept': return 'aceitou sua solicitação para seguir.';
+            case 'message': return 'enviou uma mensagem para você.';
             case 'like':
                 if (count === 1) return 'aplaudiu sua publicação.';
                 return `e mais ${otherCount} pessoa${otherCount > 1 ? 's' : ''} aplaudiram sua publicação.`;
@@ -323,7 +328,7 @@ const NotificationItem: React.FC<{ notif: any, formatTime: (d: string) => string
     return (
         <div
             className="flex items-center gap-3 p-3 rounded-2xl hover:bg-white transition-colors cursor-pointer active:scale-[0.99]"
-            onClick={() => onUserClick(notif.actor?.username)}
+            onClick={() => onNotificationClick ? onNotificationClick(notif) : onUserClick(notif.actor?.username)}
         >
             <div className="relative flex-shrink-0">
                 <img
@@ -349,6 +354,10 @@ const NotificationItem: React.FC<{ notif: any, formatTime: (d: string) => string
                     <span className="font-bold hover:text-cyan-600 transition-colors">@{notif.actor?.username || 'usuário'}</span> {getMessage()}
                     <span className="text-slate-400 text-xs font-normal ml-1">{formatTime(notif.created_at)}</span>
                 </p>
+                {/* Message Preview (Optional) */}
+                {notif.type === 'message' && (
+                    <p className="text-xs text-slate-500 mt-0.5 truncate italic">Nova mensagem direta</p>
+                )}
             </div>
 
             {/* Right Side: Post Image Preview */}
