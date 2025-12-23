@@ -125,7 +125,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
             user_id: post.userId,
             actor_id: currentUser.id,
             type: 'like',
-            target_id: post.id
+            post_id: post.id
           });
         }
       } catch (err) {
@@ -195,7 +195,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
           user_id: post.userId,
           actor_id: currentUser.id,
           type: 'comment',
-          target_id: post.id
+          post_id: post.id
         });
       }
     } catch (err) {

@@ -235,7 +235,7 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ onBack, targetUserId })
           user_id: otherUserId,
           actor_id: currentUserId,
           type: 'message', // New type
-          target_id: activeConversationId // Link to conversation
+          conversation_id: activeConversationId // Link to conversation
         });
       }
 

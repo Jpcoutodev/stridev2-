@@ -13,7 +13,8 @@ interface Notification {
     type: string;
     is_read: boolean;
     created_at: string;
-    target_id: string;
+    post_id: string;
+    conversation_id: string;
     actor: {
         username: string;
         full_name: string;
@@ -52,10 +53,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUse
         const toAggregate = rawNotifs.filter(n => n.type === 'like' || n.type === 'comment');
         const others = rawNotifs.filter(n => n.type !== 'like' && n.type !== 'comment');
 
-        // Group by type + target_id (post)
+        // Group by type + post_id
         const groups: { [key: string]: Notification[] } = {};
         for (const notif of toAggregate) {
-            const key = `${notif.type}_${notif.target_id}`;
+            const key = `${notif.type}_${notif.post_id}`;
             if (!groups[key]) {
                 groups[key] = [];
             }
@@ -102,7 +103,6 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUse
             if (reqError) throw reqError;
             setRequests((requestData as any) || []);
 
-            // 2. Fetch General Notifications
             const { data: notifData, error: notifError } = await supabase
                 .from('notifications')
                 .select(`
@@ -110,9 +110,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUse
           type,
           is_read,
           created_at,
-          target_id,
+          post_id,
+          conversation_id,
           actor:actor_id (username, full_name, avatar_url),
-          post:target_id (id, image_url, caption)
+          post:post_id (id, image_url, caption)
         `)
                 .eq('user_id', session.user.id)
                 .order('created_at', { ascending: false });
@@ -122,6 +123,15 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUse
             // Aggregate notifications
             const aggregated = aggregateNotifications((notifData as any) || []);
             setNotifications(aggregated);
+
+            // 3. Mark all as read
+            if (notifData && notifData.some(n => !n.is_read)) {
+                await supabase
+                    .from('notifications')
+                    .update({ is_read: true })
+                    .eq('user_id', session.user.id)
+                    .eq('is_read', false);
+            }
 
         } catch (error) {
             console.error('Error fetching notifications:', error);

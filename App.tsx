@@ -45,6 +45,7 @@ const App: React.FC = () => {
   // Profile Navigation State
   const [targetProfileUser, setTargetProfileUser] = useState<string | null>(null);
   const [targetMessageUser, setTargetMessageUser] = useState<string | null>(null);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
   // Scroll Logic for Header Hiding
   const [showHeader, setShowHeader] = useState(true);
@@ -74,19 +75,46 @@ const App: React.FC = () => {
       if (session) {
         fetchUserProfile(session.user.id);
         fetchRelationships(session.user.id);
-        fetchCommunityStories(session.user.id); // Added
-        fetchPosts(); // Refresh posts on login
+        fetchCommunityStories(session.user.id);
+        fetchPosts();
+        fetchUnreadNotificationsCount(session.user.id);
       } else {
-        // Clear state on logout
         setFollowingIds(new Set());
         setFollowerIds(new Set());
         setUserProfile(null);
         setMyPostList([]);
+        setUnreadNotificationsCount(0);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // -- REAL-TIME NOTIFICATIONS --
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    fetchUnreadNotificationsCount(session.user.id);
+
+    const subscription = supabase
+      .channel('notifications-changes')
+      .on('postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${session.user.id}`
+        },
+        () => {
+          fetchUnreadNotificationsCount(session.user.id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [session?.user?.id]);
 
   // -- DATA FETCHING --
   const fetchUserProfile = async (userId: string) => {
@@ -98,6 +126,18 @@ const App: React.FC = () => {
 
     if (data) setUserProfile(data);
     if (error) console.error('Error fetching profile:', error);
+  };
+
+  const fetchUnreadNotificationsCount = async (userId: string) => {
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_read', false);
+
+    if (!error && count !== null) {
+      setUnreadNotificationsCount(count);
+    }
   };
 
   const fetchRelationships = async (userId: string) => {
@@ -464,11 +504,18 @@ const App: React.FC = () => {
               <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
             <button
-              onClick={() => setCurrentView('notifications')}
+              onClick={() => {
+                setCurrentView('notifications');
+                // Mark as read could happen here or in the screen
+              }}
               className="text-slate-600 hover:text-cyan-600 transition-colors relative p-2 rounded-full hover:bg-slate-50"
             >
               <Bell size={24} />
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-lime-400 rounded-full border-2 border-white"></span>
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm animate-in zoom-in duration-300">
+                  {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => { setCurrentView('profile'); setTargetProfileUser(null); }}
