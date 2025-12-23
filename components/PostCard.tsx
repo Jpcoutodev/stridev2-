@@ -30,6 +30,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
 
   // Share State
   const [showShareTooltip, setShowShareTooltip] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   // Init auth
   useEffect(() => {
@@ -211,24 +213,32 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
   };
 
   // --- Share Logic ---
-  const handleShare = async () => {
-    const shareData = {
-      title: 'Stride Up',
-      text: `Veja o post de ${post.username} no Stride Up!`,
-      url: window.location.href // In a real app, this would be a deep link
-    };
+  const handleShare = () => {
+    setShowShareModal(true);
+  };
 
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        console.log('Error sharing:', err);
-      }
-    } else {
-      // Fallback: Copy to clipboard
-      navigator.clipboard.writeText(`Veja o post de ${post.username}: ${post.caption}`);
+  const confirmShare = async () => {
+    if (!currentUser) return;
+    setIsSharing(true);
+    try {
+      // Create a new "shared" post that references the original
+      const { error } = await supabase.from('posts').insert({
+        user_id: currentUser.id,
+        type: post.type,
+        caption: '', // Shared posts don't need their own caption
+        shared_post_id: post.sharedPostId || post.id, // Always reference the original, not a re-share
+        clap_count: 0
+      });
+
+      if (error) throw error;
+
+      setShowShareModal(false);
       setShowShareTooltip(true);
       setTimeout(() => setShowShareTooltip(false), 2000);
+    } catch (err) {
+      console.error('Error sharing post:', err);
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -267,17 +277,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
   };
 
   const renderContent = () => {
-    // 1. Text Only Post (Frase) - Render colorful background
-    if (post.type === 'text' && !post.imageUrl) {
-      return (
-        <div className="w-full aspect-[4/3] bg-gradient-to-br from-purple-500 to-indigo-600 flex flex-col items-center justify-center p-8 text-center">
-          <Quote size={32} className="text-white/30 mb-4" />
-          <p className="text-white text-xl font-bold italic font-serif leading-relaxed">
-            {post.caption}
-          </p>
-        </div>
-      );
-    }
+
 
     // 2. Measurement Post WITHOUT Image (Render specialized Data Card)
     if (post.type === 'measurement' && !post.imageUrl) {
@@ -346,6 +346,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
 
   return (
     <div className="bg-white border border-slate-100 rounded-3xl shadow-sm mb-6 mx-4 overflow-hidden relative">
+
+      {/* Shared Post Attribution */}
+      {post.originalPost && post.sharedByUsername && (
+        <div className="px-4 pt-3 pb-2 flex items-center gap-2 text-slate-500 border-b border-slate-50">
+          <Share2 size={14} />
+          <span className="text-xs font-medium">
+            <span className="font-bold text-slate-700">{post.sharedByUsername}</span> compartilhou
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center space-x-3 cursor-pointer" onClick={handleUserClick}>
@@ -415,6 +426,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
       </div>
 
       {/* Main Content Area */}
+      {/* Caption (X/Twitter Style) */}
+      {post.caption && (
+        <div className="px-4 pb-3 pt-0">
+          <p className="text-[15px] sm:text-base text-slate-900 leading-relaxed whitespace-pre-wrap font-normal">
+            {post.caption}
+          </p>
+        </div>
+      )}
+
+      {/* Main Content Area (Media) */}
       {renderContent()}
 
       {/* Measurements List Section (New - displays tags below image) */}
@@ -488,13 +509,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
           {claps}
         </div>
 
-        {/* Caption (If not text post, because text post has caption in the main block) */}
-        {post.type !== 'text' && (
-          <div className="text-sm text-slate-600 leading-relaxed">
-            <span className="font-bold text-slate-900 mr-2 cursor-pointer hover:text-cyan-600 transition-colors" onClick={handleUserClick}>{post.username}</span>
-            {post.caption}
-          </div>
-        )}
 
         {/* --- COMMENTS SECTION --- */}
         {/* Comment Preview (If hidden and comments exist) */}
@@ -562,6 +576,36 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
         )}
 
       </div>
+
+      {/* Share Confirmation Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={() => setShowShareModal(false)}>
+          <div className="bg-white rounded-2xl p-6 mx-4 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4">
+              <div className="w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Share2 size={24} className="text-cyan-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Compartilhar Publicação?</h3>
+              <p className="text-sm text-slate-500 mt-1">Esta postagem aparecerá no seu perfil e no feed da comunidade.</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="flex-1 py-3 px-4 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmShare}
+                disabled={isSharing}
+                className="flex-1 py-3 px-4 rounded-xl bg-cyan-500 text-white font-semibold hover:bg-cyan-600 transition-colors flex items-center justify-center gap-2"
+              >
+                {isSharing ? <Loader2 size={18} className="animate-spin" /> : 'Compartilhar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

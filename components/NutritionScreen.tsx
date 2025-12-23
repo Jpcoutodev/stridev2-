@@ -136,18 +136,55 @@ const NutritionScreen: React.FC = () => {
 
     // --- GEMINI AI INTEGRATION ---
 
-    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const resizeImage = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target?.result as string;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const MAX_WIDTH = 800; // Limit resolution for Vercel payload
+                    const MAX_HEIGHT = 800;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7)); // Compress to JPEG 70%
+                };
+                img.onerror = (err) => reject(err);
+            };
+            reader.onerror = (err) => reject(err);
+        });
+    };
+
+    const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            const reader = new FileReader();
-
-            reader.onloadend = () => {
-                const base64String = reader.result as string;
-                setAnalysisImage(base64String);
-                setAnalysisResult(null); // Reset previous result
-            };
-
-            reader.readAsDataURL(file);
+            try {
+                // Resize image before setting state
+                const resizedBase64 = await resizeImage(file);
+                setAnalysisImage(resizedBase64);
+                setAnalysisResult(null);
+            } catch (err) {
+                console.error("Error resizing image:", err);
+                alert("Erro ao processar imagem. Tente outra.");
+            }
         }
     };
 
@@ -158,7 +195,8 @@ const NutritionScreen: React.FC = () => {
 
         try {
             const base64Data = analysisImage.split(',')[1];
-            const mimeType = analysisImage.split(';')[0].split(':')[1];
+            // Since we convert to JPEG in resizeImage, it's always jpeg
+            const mimeType = 'image/jpeg';
 
             const result = await analyzeFood(base64Data, mimeType);
 
@@ -169,9 +207,10 @@ const NutritionScreen: React.FC = () => {
             setNewMealName(result.foodName);
             setNewMealCalories(result.calories.toString());
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("OpenAI Error:", error);
-            alert("Não foi possível analisar a imagem. Verifique sua conexão ou tente outra foto.");
+            // Show ACTUAL error message to user for debugging
+            alert(`Erro na IA: ${error.message || JSON.stringify(error)}`);
         } finally {
             setIsAnalyzing(false);
         }

@@ -23,6 +23,7 @@ interface Conversation {
     avatar_url: string;
   };
   lastMessageText?: string; // Derived from latest message if needed, or fetched
+  unreadCount?: number;
 }
 
 interface MessagesScreenProps {
@@ -41,23 +42,6 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ onBack, targetUserId })
 
   // Refs for scrolling
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Initialize
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setCurrentUserId(session.user.id);
-        fetchConversations(session.user.id);
-      }
-    });
-  }, []);
-
-  // Handle Target User (Deep Link logic)
-  useEffect(() => {
-    if (currentUserId && targetUserId && !loading) {
-      handleTargetUser(targetUserId);
-    }
-  }, [currentUserId, targetUserId, loading]);
 
   const fetchConversations = async (userId: string) => {
     try {
@@ -104,10 +88,19 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ onBack, targetUserId })
           .limit(1)
           .single();
 
+        // Fetch unread count
+        const { count: unreadCount } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('conversation_id', conv.id)
+          .eq('is_read', false)
+          .neq('sender_id', userId);
+
         return {
           ...conv,
           otherUser,
-          lastMessageText: msgData?.text || 'Inicie uma conversa'
+          lastMessageText: msgData?.text || 'Inicie uma conversa',
+          unreadCount: unreadCount || 0
         };
       }));
 
@@ -157,8 +150,45 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ onBack, targetUserId })
 
     if (data) {
       setMessages(data);
+
+      // Mark as read (if there are unread messages from others)
+      const hasUnread = data.some(m => !m.is_read && m.sender_id !== currentUserId);
+      if (hasUnread && currentUserId) {
+        await supabase
+          .from('messages')
+          .update({ is_read: true })
+          .eq('conversation_id', convId)
+          .neq('sender_id', currentUserId)
+          .eq('is_read', false);
+      }
     }
   };
+
+  // Initialize
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setCurrentUserId(session.user.id);
+        fetchConversations(session.user.id);
+      }
+    });
+  }, []);
+
+  // Handle Target User (Deep Link logic)
+  useEffect(() => {
+    if (currentUserId && targetUserId && !loading) {
+      handleTargetUser(targetUserId);
+    }
+  }, [currentUserId, targetUserId, loading]);
+
+  // Refetch list when returning from a conversation
+  useEffect(() => {
+    if (!activeConversationId && currentUserId) {
+      fetchConversations(currentUserId);
+    }
+  }, [activeConversationId]);
+
+
 
   useEffect(() => {
     if (activeConversationId) {
@@ -170,8 +200,14 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ onBack, targetUserId })
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${activeConversationId}`
-        }, (payload) => {
-          setMessages(prev => [...prev, payload.new as Message]);
+        }, async (payload) => {
+          const newMsg = payload.new as Message;
+          setMessages(prev => [...prev, newMsg]);
+
+          // Mark as read immediately if I'm viewing this conversation
+          if (newMsg.sender_id !== currentUserId) {
+            await supabase.from('messages').update({ is_read: true }).eq('id', newMsg.id);
+          }
         })
         .subscribe();
 
@@ -420,9 +456,14 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ onBack, targetUserId })
                     <span className="text-xs text-slate-400 font-semibold">{formatTime(conv.last_message_at)}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <p className="text-sm text-slate-500 truncate pr-2">
+                    <p className="text-sm text-slate-500 truncate pr-2 flex-1">
                       {conv.lastMessageText}
                     </p>
+                    {!!conv.unreadCount && conv.unreadCount > 0 && (
+                      <span className="min-w-[20px] h-5 px-1.5 bg-cyan-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full ml-2">
+                        {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

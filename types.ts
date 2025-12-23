@@ -26,6 +26,12 @@ export interface PostModel {
   // Interaction
   comments?: CommentModel[];
   isPrivate?: boolean;
+
+  // Shared/Repost
+  sharedPostId?: string;
+  originalPost?: PostModel; // The original post data if this is a share
+  sharedByUsername?: string; // Username of person who shared (for display)
+  sharedByAvatar?: string;
 }
 
 export interface UserProfile {

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ChefHat, Plus, X, Sparkles, Flame, Clock, ArrowRight, ShoppingBag, Loader2 } from 'lucide-react';
+import { ChefHat, Plus, X, Sparkles, Flame, Clock, ArrowRight, ShoppingBag, Loader2, Mic, MicOff } from 'lucide-react';
 import { generateRecipeAI } from '../lib/openai';
 
 const RecipesScreen: React.FC = () => {
@@ -7,6 +7,46 @@ const RecipesScreen: React.FC = () => {
     const [currentInput, setCurrentInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [recipe, setRecipe] = useState<any | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+
+    // Voice Recognition Ref
+    const recognitionRef = useRef<any>(null);
+
+    const toggleVoiceInput = () => {
+        if (isRecording) {
+            if (recognitionRef.current) recognitionRef.current.stop();
+            return;
+        }
+
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Seu navegador não suporta entrada de voz.");
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'pt-BR';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onstart = () => setIsRecording(true);
+        recognition.onend = () => setIsRecording(false);
+        recognition.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            if (transcript) {
+                // Capitalize first letter
+                const formatted = transcript.charAt(0).toUpperCase() + transcript.slice(1);
+                setCurrentInput(prev => prev ? `${prev}, ${formatted}` : formatted);
+            }
+        };
+        recognition.onerror = (event: any) => {
+            console.error("Voice error:", event.error);
+            setIsRecording(false);
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+    };
 
     const handleAddIngredient = () => {
         if (currentInput.trim()) {
@@ -37,16 +77,16 @@ const RecipesScreen: React.FC = () => {
             const result = await generateRecipeAI(ingredients);
             setRecipe(result);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Erro ao gerar receita:", error);
-            alert("Ocorreu um erro ao consultar o Chef IA. Tente novamente.");
+            alert(`Erro no Chef IA: ${error.message || JSON.stringify(error)}`);
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 relative animate-in fade-in duration-300 overflow-y-auto no-scrollbar pb-24">
+        <div className="flex flex-col h-full w-full bg-slate-50 relative animate-in fade-in duration-300 overflow-y-auto no-scrollbar pb-32">
 
             {/* Header with gradient (Updated to match Nutrition Screen: Cyan/Blue) */}
             <div className="bg-gradient-to-r from-cyan-500 to-blue-600 px-6 pt-10 pb-16 rounded-b-[40px] shadow-lg relative overflow-hidden">
@@ -99,6 +139,17 @@ const RecipesScreen: React.FC = () => {
                             placeholder="Ex: Frango, Batata Doce, Ovos..."
                             className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 transition-all"
                         />
+
+                        {/* Voice Input Button */}
+                        <button
+                            onClick={toggleVoiceInput}
+                            className={`p-3 rounded-xl transition-all active:scale-95 flex items-center justify-center 
+                                ${isRecording ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}
+                            `}
+                        >
+                            {isRecording ? <MicOff size={24} /> : <Mic size={24} />}
+                        </button>
+
                         <button
                             onClick={handleAddIngredient}
                             disabled={!currentInput.trim()}

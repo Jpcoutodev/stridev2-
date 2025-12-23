@@ -46,6 +46,7 @@ const App: React.FC = () => {
   const [targetProfileUser, setTargetProfileUser] = useState<string | null>(null);
   const [targetMessageUser, setTargetMessageUser] = useState<string | null>(null);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
 
   // Scroll Logic for Header Hiding
   const [showHeader, setShowHeader] = useState(true);
@@ -78,12 +79,14 @@ const App: React.FC = () => {
         fetchCommunityStories(session.user.id);
         fetchPosts();
         fetchUnreadNotificationsCount(session.user.id);
+        fetchUnreadMessagesCount(session.user.id);
       } else {
         setFollowingIds(new Set());
         setFollowerIds(new Set());
         setUserProfile(null);
         setMyPostList([]);
         setUnreadNotificationsCount(0);
+        setUnreadMessagesCount(0);
       }
     });
 
@@ -95,6 +98,7 @@ const App: React.FC = () => {
     if (!session?.user?.id) return;
 
     fetchUnreadNotificationsCount(session.user.id);
+    fetchUnreadMessagesCount(session.user.id);
 
     const subscription = supabase
       .channel('notifications-changes')
@@ -107,6 +111,21 @@ const App: React.FC = () => {
         },
         () => {
           fetchUnreadNotificationsCount(session.user.id);
+          // Also fetch messages count as a new notification might mean a new message
+          fetchUnreadMessagesCount(session.user.id);
+        }
+      )
+      .on('postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages'
+          // We can't filter UPDATEs by sender if we are the receiver purely by column here easily without RLS awareness,
+          // but we can just listen to all message events involving us.
+          // RLS ensures we only receive events for messages we can see.
+        },
+        () => {
+          fetchUnreadMessagesCount(session.user.id);
         }
       )
       .subscribe();
@@ -137,6 +156,19 @@ const App: React.FC = () => {
 
     if (!error && count !== null) {
       setUnreadNotificationsCount(count);
+    }
+  };
+
+  const fetchUnreadMessagesCount = async (userId: string) => {
+    // Count unread messages where sender is NOT me
+    const { count, error } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_read', false)
+      .neq('sender_id', userId);
+
+    if (!error && count !== null) {
+      setUnreadMessagesCount(count);
     }
   };
 
@@ -240,23 +272,67 @@ const App: React.FC = () => {
       if (data) {
         console.log("Posts carregados:", data.length);
 
+        // For shared posts, we need to fetch the original post data
+        const sharedPostIds = data.filter(p => p.shared_post_id).map(p => p.shared_post_id);
+        let originalPostsMap: Record<string, any> = {};
+
+        if (sharedPostIds.length > 0) {
+          const { data: originalPosts } = await supabase
+            .from('posts')
+            .select(`*, profiles (username, avatar_url)`)
+            .in('id', sharedPostIds);
+
+          if (originalPosts) {
+            originalPostsMap = originalPosts.reduce((acc, p) => {
+              acc[p.id] = p;
+              return acc;
+            }, {} as Record<string, any>);
+          }
+        }
+
         // Map DB snake_case to App camelCase
-        const mappedPosts: PostModel[] = data.map((p: any) => ({
-          id: p.id,
-          userId: p.user_id, // Added
-          type: p.type,
-          username: p.profiles?.username || 'Usuário',
-          userAvatar: p.profiles?.avatar_url || 'https://via.placeholder.com/150',
-          date: p.created_at,
-          clapCount: p.clap_count || 0,
-          caption: p.caption,
-          imageUrl: p.image_url,
-          weight: p.weight,
-          measurements: p.measurements,
-          workoutItems: p.workout_items,
-          comments: [],
-          isPrivate: p.profiles?.is_private || false
-        }));
+        const mappedPosts: PostModel[] = data.map((p: any) => {
+          // If this is a shared post, use original post data for display
+          const originalPost = p.shared_post_id ? originalPostsMap[p.shared_post_id] : null;
+          const isShared = !!originalPost;
+          const displayData = isShared ? originalPost : p;
+
+          return {
+            id: p.id,
+            userId: p.user_id,
+            type: displayData.type,
+            username: isShared ? displayData.profiles?.username : p.profiles?.username || 'Usuário',
+            userAvatar: isShared ? displayData.profiles?.avatar_url : p.profiles?.avatar_url || 'https://via.placeholder.com/150',
+            date: displayData.created_at || p.created_at,
+            clapCount: displayData.clap_count || 0,
+            caption: displayData.caption,
+            imageUrl: displayData.image_url,
+            weight: displayData.weight,
+            measurements: displayData.measurements,
+            workoutItems: displayData.workout_items,
+            comments: [],
+            isPrivate: p.profiles?.is_private || false,
+            // Shared post metadata
+            sharedPostId: p.shared_post_id,
+            originalPost: isShared ? {
+              id: displayData.id,
+              userId: displayData.user_id,
+              type: displayData.type,
+              username: displayData.profiles?.username || 'Usuário',
+              userAvatar: displayData.profiles?.avatar_url || 'https://via.placeholder.com/150',
+              date: displayData.created_at,
+              clapCount: displayData.clap_count || 0,
+              caption: displayData.caption,
+              imageUrl: displayData.image_url,
+              weight: displayData.weight,
+              measurements: displayData.measurements,
+              workoutItems: displayData.workout_items,
+              comments: []
+            } : undefined,
+            sharedByUsername: isShared ? p.profiles?.username : undefined,
+            sharedByAvatar: isShared ? p.profiles?.avatar_url : undefined
+          };
+        });
 
         // Filter out private posts from community feed, EXCEPT from people I follow OR people who follow me
         const userId = session?.user?.id;
@@ -268,11 +344,9 @@ const App: React.FC = () => {
           }
           return false;
         }));
-        // Filter for "My Stride" (all my posts)
-        const currentUsername = userProfile?.username;
-
+        // Filter for "My Stride" (all my posts, including posts I shared)
         if (userId) {
-          setMyPostList(mappedPosts.filter(p => p.username === currentUsername));
+          setMyPostList(mappedPosts.filter(p => p.userId === userId));
         } else {
           setMyPostList([]);
         }
@@ -497,11 +571,19 @@ const App: React.FC = () => {
               <Search size={24} />
             </button>
             <button
-              onClick={() => setCurrentView('messages')}
+              onClick={() => {
+                setCurrentView('messages');
+                // We'll trust that entering the screen eventually clears the count via fetch/subscription
+                setTimeout(() => session?.user?.id && fetchUnreadMessagesCount(session.user.id), 2000);
+              }}
               className="text-slate-600 hover:text-cyan-600 transition-colors relative p-2 rounded-full hover:bg-slate-50"
             >
               <MessageCircle size={24} />
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+              {unreadMessagesCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm animate-in zoom-in duration-300">
+                  {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => {
@@ -685,6 +767,7 @@ const App: React.FC = () => {
             onBack={() => {
               setCurrentView('home');
               setTargetMessageUser(null);
+              if (session?.user?.id) fetchUnreadMessagesCount(session.user.id);
             }}
             targetUserId={targetMessageUser}
           />
