@@ -3,6 +3,52 @@
  * Helps prevent Payload Too Large errors and saves bandwidth/storage.
  */
 
+import heic2any from 'heic2any';
+
+/**
+ * Converts HEIC/HEIF images to JPEG format.
+ * @param file The original HEIC File object.
+ * @returns A Promise that resolves to a JPEG File object.
+ */
+export const convertHeicToJpeg = async (file: File): Promise<File> => {
+    try {
+        // Check if it's a HEIC file
+        const isHeic = file.name.toLowerCase().endsWith('.heic') ||
+            file.name.toLowerCase().endsWith('.heif') ||
+            file.type === 'image/heic' ||
+            file.type === 'image/heif';
+
+        if (!isHeic) {
+            return file; // Not HEIC, return as-is
+        }
+
+        console.log('Converting HEIC to JPEG...');
+
+        // Convert HEIC to JPEG
+        const convertedBlob = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.9 // High quality for initial conversion
+        });
+
+        // heic2any can return Blob or Blob[], handle both
+        const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+
+        // Create new File from Blob
+        const newName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+        const newFile = new File([blob], newName, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+        });
+
+        console.log('HEIC conversion successful!');
+        return newFile;
+    } catch (error) {
+        console.error('HEIC conversion failed:', error);
+        throw new Error('Failed to convert HEIC image');
+    }
+};
+
 /**
  * Resizes an image file to a maximum dimension and compresses it to JPEG.
  * @param file The original image File object.

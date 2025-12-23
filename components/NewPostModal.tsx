@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Camera, Ruler, Scale, Plus, Trash2, MessageSquare, Dumbbell, Smile, Image as ImageIcon } from 'lucide-react';
 import { PostModel } from '../types';
-import { compressImage } from '../lib/imageUtils';
+import { compressImage, convertHeicToJpeg } from '../lib/imageUtils';
 
 interface NewPostModalProps {
   isOpen: boolean;
@@ -107,7 +107,11 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ isOpen, onClose, onSave, po
     if (e.target.files && e.target.files[0]) {
       const originalFile = e.target.files[0];
       try {
-        const compressedFile = await compressImage(originalFile, 1024, 0.7);
+        // Step 1: Convert HEIC to JPEG if needed
+        const convertedFile = await convertHeicToJpeg(originalFile);
+
+        // Step 2: Compress the image
+        const compressedFile = await compressImage(convertedFile, 1024, 0.7);
         setSelectedImageFile(compressedFile);
         // Create a local preview URL from the compressed file
         setSelectedImagePreview(URL.createObjectURL(compressedFile));

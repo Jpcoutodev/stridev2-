@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, User, Lock, Globe, Save, Ruler, Weight, MapPin, Loader2, LogOut, AtSign, AlertCircle } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import { compressImage } from '../lib/imageUtils';
+import { compressImage, convertHeicToJpeg } from '../lib/imageUtils';
 
 interface ProfileScreenProps {
     onLogout: () => void;
@@ -99,8 +99,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
             const originalFile = e.target.files[0];
 
             try {
-                // Compress (Profile pics can be smaller, e.g. 500px)
-                const compressedFile = await compressImage(originalFile, 500, 0.7);
+                // Step 1: Convert HEIC to JPEG if needed
+                const convertedFile = await convertHeicToJpeg(originalFile);
+
+                // Step 2: Compress (Profile pics can be smaller, e.g. 500px)
+                const compressedFile = await compressImage(convertedFile, 500, 0.7);
 
                 setSelectedImageFile(compressedFile);
                 const url = URL.createObjectURL(compressedFile);
