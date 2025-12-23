@@ -43,6 +43,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
 
             if (!session) return;
 
+            // 1. Fetch Profile Data
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
@@ -52,6 +53,13 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
             if (error && error.code !== 'PGRST116') {
                 throw error;
             }
+
+            // 2. Fetch Dynamic Counts
+            const [postsCount, followersCount, followingCount] = await Promise.all([
+                supabase.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id),
+                supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', session.user.id).eq('status', 'accepted'),
+                supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', session.user.id).eq('status', 'accepted')
+            ]);
 
             if (data) {
                 setInitialUsername(data.username || '');
@@ -64,7 +72,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
                     location: data.location || '',
                     full_name: data.full_name || '',
                     username: data.username || '',
-                    avatar_url: data.avatar_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop'
+                    avatar_url: data.avatar_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop',
+                    posts: postsCount.count || 0,
+                    followers: followersCount.count || 0,
+                    following: followingCount.count || 0
                 });
             }
         } catch (error: any) {
