@@ -39,12 +39,45 @@ interface FollowRequest {
 const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUserClick }) => {
     const [loading, setLoading] = useState(true);
     const [requests, setRequests] = useState<FollowRequest[]>([]);
-    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [notifications, setNotifications] = useState<any[]>([]);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchData();
     }, []);
+
+    const aggregateNotifications = (rawNotifs: Notification[]): any[] => {
+        // Separate notifications that should be aggregated (likes, comments) from others
+        const toAggregate = rawNotifs.filter(n => n.type === 'like' || n.type === 'comment');
+        const others = rawNotifs.filter(n => n.type !== 'like' && n.type !== 'comment');
+
+        // Group by type + target_id (post)
+        const groups: { [key: string]: Notification[] } = {};
+        for (const notif of toAggregate) {
+            const key = `${notif.type}_${notif.target_id}`;
+            if (!groups[key]) {
+                groups[key] = [];
+            }
+            groups[key].push(notif);
+        }
+
+        // Convert groups to aggregated notifications
+        const aggregated = Object.values(groups).map(group => {
+            // Sort by created_at descending to get latest first
+            group.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            const latest = group[0];
+            return {
+                ...latest,
+                count: group.length,
+                allActors: group.map(g => g.actor)
+            };
+        });
+
+        // Combine and sort all by date
+        const all = [...aggregated, ...others];
+        all.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        return all;
+    };
 
     const fetchData = async () => {
         try {
@@ -84,7 +117,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUse
                 .order('created_at', { ascending: false });
 
             if (notifError) throw notifError;
-            setNotifications((notifData as any) || []);
+
+            // Aggregate notifications
+            const aggregated = aggregateNotifications((notifData as any) || []);
+            setNotifications(aggregated);
 
         } catch (error) {
             console.error('Error fetching notifications:', error);
@@ -267,12 +303,19 @@ const NotificationItem: React.FC<{ notif: any, formatTime: (d: string) => string
     };
 
     const getMessage = () => {
+        const count = notif.count || 1;
+        const otherCount = count - 1;
+
         switch (notif.type) {
             case 'new_follower': return 'começou a seguir você.';
             case 'follow_request': return 'enviou uma solicitação para seguir você.';
             case 'follow_accept': return 'aceitou sua solicitação para seguir.';
-            case 'like': return 'curtiu sua publicação.';
-            case 'comment': return 'comentou na sua publicação.';
+            case 'like':
+                if (count === 1) return 'aplaudiu sua publicação.';
+                return `e mais ${otherCount} pessoa${otherCount > 1 ? 's' : ''} aplaudiram sua publicação.`;
+            case 'comment':
+                if (count === 1) return 'comentou na sua publicação.';
+                return `e mais ${otherCount} pessoa${otherCount > 1 ? 's' : ''} comentaram na sua publicação.`;
             default: return 'enviou um alerta.';
         }
     };
@@ -288,6 +331,12 @@ const NotificationItem: React.FC<{ notif: any, formatTime: (d: string) => string
                     alt="Actor"
                     className="w-12 h-12 rounded-full object-cover border border-slate-100"
                 />
+                {/* Show count badge for aggregated notifications */}
+                {notif.count > 1 && (
+                    <div className="absolute -top-1 -right-1 bg-cyan-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full shadow-sm">
+                        {notif.count}
+                    </div>
+                )}
                 <div className="absolute -bottom-1 -right-1 bg-white p-0.5 rounded-full">
                     <div className={`${getBadgeColor()} p-1 rounded-full text-white`}>
                         {getIcon()}
