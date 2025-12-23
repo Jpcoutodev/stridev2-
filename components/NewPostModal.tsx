@@ -113,7 +113,15 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ isOpen, onClose, onSave, po
         setSelectedImagePreview(URL.createObjectURL(compressedFile));
       } catch (error: any) {
         console.error("Compression/Selection error:", error);
-        alert(`Erro ao processar imagem: ${error.message || "Tente novamente."}`);
+
+        // FALLBACK: If compression fails (e.g. format issue), try using original if < 10MB
+        if (originalFile.size < 10 * 1024 * 1024) {
+          console.warn("Compression failed, using original file as fallback.");
+          setSelectedImageFile(originalFile);
+          setSelectedImagePreview(URL.createObjectURL(originalFile));
+        } else {
+          alert(`Erro: Imagem muito grande e falha na otimização. (${error.message || "Tente outra imagem"})`);
+        }
       }
     }
   };
