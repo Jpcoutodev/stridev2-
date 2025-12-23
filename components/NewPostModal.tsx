@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Camera, Ruler, Scale, Plus, Trash2, MessageSquare, Dumbbell, Smile } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Camera, Ruler, Scale, Plus, Trash2, MessageSquare, Dumbbell, Smile, Image as ImageIcon } from 'lucide-react';
 import { PostModel } from '../types';
 import { compressImage } from '../lib/imageUtils';
 
@@ -33,6 +33,10 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ isOpen, onClose, onSave, po
   const [workoutItems, setWorkoutItems] = useState<{ activity: string, detail: string }[]>([]);
   const [currentActivity, setCurrentActivity] = useState('');
   const [currentDetail, setCurrentDetail] = useState('');
+
+  // Refs for File Inputs
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // --- Initialize State on Open (Edit Mode vs Create Mode) ---
   useEffect(() => {
@@ -107,9 +111,9 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ isOpen, onClose, onSave, po
         setSelectedImageFile(compressedFile);
         // Create a local preview URL from the compressed file
         setSelectedImagePreview(URL.createObjectURL(compressedFile));
-      } catch (error) {
-        console.error("Compression error:", error);
-        alert("Erro ao processar imagem. Tente outra.");
+      } catch (error: any) {
+        console.error("Compression/Selection error:", error);
+        alert(`Erro ao processar imagem: ${error.message || "Tente novamente."}`);
       }
     }
   };
@@ -190,23 +194,62 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ isOpen, onClose, onSave, po
 
           {/* IMAGE UPLOAD (Available for Image AND Measurement types now) */}
           {(postType === 'image' || postType === 'measurement') && (
-            <div className="w-full aspect-[4/3] bg-slate-50 rounded-2xl border-2 border-dashed border-cyan-200 flex flex-col items-center justify-center relative overflow-hidden group hover:border-cyan-50 hover:bg-cyan-50 transition-all cursor-pointer">
+            <div className="space-y-3">
               {selectedImagePreview ? (
-                <img src={selectedImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                // Preview Mode
+                <div className="w-full aspect-[4/3] bg-slate-50 rounded-2xl border border-slate-200 relative overflow-hidden group">
+                  <img src={selectedImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => {
+                      setSelectedImagePreview(null);
+                      setSelectedImageFile(null);
+                    }}
+                    className="absolute top-3 right-3 bg-white/90 p-2 rounded-full shadow-sm hover:bg-red-50 hover:text-red-500 transition-all"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
               ) : (
-                <>
-                  <div className="bg-white p-4 rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform">
-                    <Camera size={32} className="text-cyan-500" />
+                // Selection Mode (Split Buttons)
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Camera Button */}
+                  <div
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="aspect-square bg-cyan-50 rounded-2xl border-2 border-dashed border-cyan-200 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-cyan-100 hover:border-cyan-300 transition-all active:scale-95"
+                  >
+                    <div className="bg-white p-3 rounded-full shadow-sm text-cyan-600">
+                      <Camera size={28} />
+                    </div>
+                    <span className="font-bold text-cyan-700 text-sm">Tirar Foto</span>
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={handleImageSelect}
+                    />
                   </div>
-                  <span className="text-sm text-slate-500 font-medium group-hover:text-cyan-600">Toque para enviar foto</span>
-                </>
+
+                  {/* Gallery Button */}
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="aspect-square bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition-all active:scale-95"
+                  >
+                    <div className="bg-white p-3 rounded-full shadow-sm text-slate-500">
+                      <ImageIcon size={28} />
+                    </div>
+                    <span className="font-bold text-slate-600 text-sm">Galeria</span>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageSelect}
+                    />
+                  </div>
+                </div>
               )}
-              <input
-                type="file"
-                accept="image/*"
-                className="absolute inset-0 opacity-0 cursor-pointer"
-                onChange={handleImageSelect}
-              />
             </div>
           )}
 
