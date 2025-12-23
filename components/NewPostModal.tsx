@@ -118,7 +118,15 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ isOpen, onClose, onSave, po
         if (originalFile.size < 10 * 1024 * 1024) {
           console.warn("Compression failed, using original file as fallback.");
           setSelectedImageFile(originalFile);
-          setSelectedImagePreview(URL.createObjectURL(originalFile));
+
+          // Check if it's a format we can preview (browser-supported)
+          const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+          if (supportedTypes.includes(originalFile.type.toLowerCase())) {
+            setSelectedImagePreview(URL.createObjectURL(originalFile));
+          } else {
+            // Use special marker for unsupported formats (e.g., HEIC)
+            setSelectedImagePreview('NO_PREVIEW');
+          }
         } else {
           alert(`Erro: Imagem muito grande e falha na otimização. (${error.message || "Tente outra imagem"})`);
         }
@@ -206,7 +214,22 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ isOpen, onClose, onSave, po
               {selectedImagePreview ? (
                 // Preview Mode
                 <div className="w-full aspect-[4/3] bg-slate-50 rounded-2xl border border-slate-200 relative overflow-hidden group">
-                  <img src={selectedImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  {selectedImagePreview === 'NO_PREVIEW' ? (
+                    // Placeholder for unsupported formats
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-cyan-50 to-slate-50 p-6">
+                      <div className="bg-white p-4 rounded-full shadow-md">
+                        <ImageIcon size={40} className="text-cyan-500" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-bold text-slate-700 mb-1">Imagem Selecionada</p>
+                        <p className="text-xs text-slate-500 max-w-[200px] truncate">{selectedImageFile?.name}</p>
+                        <p className="text-xs text-cyan-600 mt-2">✓ Pronta para postar</p>
+                      </div>
+                    </div>
+                  ) : (
+                    // Normal image preview
+                    <img src={selectedImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  )}
                   <button
                     onClick={() => {
                       setSelectedImagePreview(null);
