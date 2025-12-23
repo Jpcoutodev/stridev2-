@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, User, Lock, Globe, Save, Ruler, Weight, MapPin, Loader2, LogOut, AtSign, AlertCircle } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { compressImage } from '../lib/imageUtils';
 
 interface ProfileScreenProps {
     onLogout: () => void;
@@ -91,13 +92,23 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
         if (errorMsg) setErrorMsg(null);
     };
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setSelectedImageFile(file);
 
-            const url = URL.createObjectURL(file);
-            setProfile(prev => ({ ...prev, avatar_url: url }));
+
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const originalFile = e.target.files[0];
+
+            try {
+                // Compress (Profile pics can be smaller, e.g. 500px)
+                const compressedFile = await compressImage(originalFile, 500, 0.7);
+
+                setSelectedImageFile(compressedFile);
+                const url = URL.createObjectURL(compressedFile);
+                setProfile(prev => ({ ...prev, avatar_url: url }));
+            } catch (error) {
+                console.error("Error compressing profile image:", error);
+                alert("Erro ao processar imagem de perfil.");
+            }
         }
     };
 

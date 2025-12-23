@@ -36,13 +36,13 @@ export default async function handler(request: Request) {
                 messages: [
                     {
                         role: 'system',
-                        content: 'Você é um chef especializado em receitas fitness e saudáveis. Crie receitas criativas usando os ingredientes fornecidos. Retorne APENAS um JSON válido com os campos: "title", "calories" (número), "time", "description", "ingredients" (array de strings), "instructions" (array de strings). Sem texto adicional, apenas o JSON. Responda em português.'
+                        content: 'Você é um chef especializado em receitas fitness e saudáveis. Crie 3 opções de receitas criativas usando os ingredientes fornecidos. Retorne APENAS um JSON válido com o campo "recipes" que é um array de 3 objetos, cada um contendo: "title", "calories" (número), "time", "description", "ingredients" (array de strings), "instructions" (array de strings). Sem texto adicional, apenas o JSON. Responda em português.'
                     },
                     {
                         role: 'user',
-                        content: `Crie uma receita FITNESS e SAUDÁVEL usando principalmente estes ingredientes: ${ingredients.join(', ')}. 
+                        content: `Crie 3 opções de receitas FITNESS e SAUDÁVEIS usando principalmente estes ingredientes: ${ingredients.join(', ')}. 
             Você pode adicionar temperos básicos ou ingredientes muito comuns (como água, sal, azeite) se necessário, mas foque no que o usuário tem.
-            Seja criativo. Retorne o JSON.`
+            Dê opções variadas (ex: uma mais rápida, uma mais elaborada). Retorne o JSON.`
                     }
                 ],
                 temperature: 0.7,
@@ -60,7 +60,8 @@ export default async function handler(request: Request) {
         }
 
         const data = await response.json();
-        const result = JSON.parse(data.choices[0]?.message?.content || '{}');
+        const parsedContext = JSON.parse(data.choices[0]?.message?.content || '{}');
+        const result = parsedContext.recipes || [parsedContext]; // Fallback if AI returns single object
 
         return new Response(JSON.stringify(result), {
             status: 200,
