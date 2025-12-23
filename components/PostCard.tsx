@@ -62,7 +62,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
       .select(`
         id,
         user_id,
-        content,
+        text,
         created_at,
         profiles (username, avatar_url)
       `)
@@ -74,8 +74,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
         id: c.id,
         userId: c.user_id,
         username: c.profiles?.username || 'Usuário',
-        userAvatar: c.profiles?.avatar_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop',
-        text: c.content,
+        userAvatar: c.profiles?.avatar_url || 'https://via.placeholder.com/150',
+        text: c.text,
         timestamp: formatTime(c.created_at)
       }));
       setComments(mapped);
@@ -168,7 +168,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
         .insert({
           user_id: currentUser.id,
           post_id: post.id,
-          content: newCommentContent
+          text: newCommentContent
         })
         .select(`
            id,
@@ -182,8 +182,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
       const localComment: CommentModel = {
         id: data.id,
         userId: currentUser.id,
-        username: currentUser.username,
-        userAvatar: currentUser.avatar_url,
+        username: currentUser.username || 'Usuário',
+        userAvatar: currentUser.avatar_url || 'https://via.placeholder.com/150',
         text: newCommentContent,
         timestamp: 'Agora'
       };
@@ -537,9 +537,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
             {/* Comment Input */}
             <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-full border border-slate-200 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-100 transition-all">
               <img
-                src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop"
+                src={currentUser?.avatar_url || "https://via.placeholder.com/150"}
                 alt="Current User"
-                className="w-8 h-8 rounded-full border border-white shadow-sm"
+                className="w-8 h-8 rounded-full border border-white shadow-sm object-cover"
               />
               <input
                 ref={commentInputRef}
