@@ -40,6 +40,7 @@ const App: React.FC = () => {
   const [followerIds, setFollowerIds] = useState<Set<string>>(new Set());
   const [selectedPostType, setSelectedPostType] = useState<'image' | 'measurement' | 'text' | 'workout'>('image');
   const [editingPost, setEditingPost] = useState<PostModel | null>(null);
+  const [communityStories, setCommunityStories] = useState<any[]>([]); // Real stories data
 
   // Profile Navigation State
   const [targetProfileUser, setTargetProfileUser] = useState<string | null>(null);
@@ -51,14 +52,8 @@ const App: React.FC = () => {
   // Select data source based on active tab
   const postsToDisplay = activeTab === 'myStride' ? myPostList : communityPostList;
 
-  // -- Stories Logic (Followed Users sorted by activity) --
-  // Note: Still using Mock users for stories until we implement a followers table
-  const followedUsers = MOCK_USERS
-    .filter(u => u.isFollowing)
-    .sort((a, b) => {
-      if (a.hasNewStory === b.hasNewStory) return 0;
-      return a.hasNewStory ? -1 : 1;
-    });
+  // -- Stories Logic (Combined Friends + Suggestions) --
+  // This is now handled by communityStories state fetched from Supabase
 
   // -- SUPABASE AUTH LISTENER --
   useEffect(() => {
@@ -67,7 +62,8 @@ const App: React.FC = () => {
       setIsAuthenticated(!!session);
       if (session) {
         fetchUserProfile(session.user.id);
-        fetchRelationships(session.user.id); // Added
+        fetchRelationships(session.user.id);
+        fetchCommunityStories(session.user.id); // Added
       }
     });
 
@@ -76,7 +72,8 @@ const App: React.FC = () => {
       setIsAuthenticated(!!session);
       if (session) {
         fetchUserProfile(session.user.id);
-        fetchRelationships(session.user.id); // Added
+        fetchRelationships(session.user.id);
+        fetchCommunityStories(session.user.id); // Added
         fetchPosts(); // Refresh posts on login
       } else {
         // Clear state on logout
@@ -129,6 +126,59 @@ const App: React.FC = () => {
       }
     } catch (err) {
       console.error('Error fetching relationships:', err);
+    }
+  };
+
+  const fetchCommunityStories = async (userId: string) => {
+    try {
+      // 1. Fetch followed users (friends)
+      const { data: follows, error: followsError } = await supabase
+        .from('follows')
+        .select(`
+          following_id,
+          profiles:following_id (id, username, full_name, avatar_url)
+        `)
+        .eq('follower_id', userId)
+        .eq('status', 'accepted')
+        .limit(10);
+
+      if (followsError) throw followsError;
+
+      const friends = follows?.map((f: any) => ({
+        id: f.profiles.id,
+        name: f.profiles.full_name || f.profiles.username,
+        username: f.profiles.username,
+        avatar: f.profiles.avatar_url || 'https://via.placeholder.com/150',
+        isFriend: true,
+        hasNewStory: false // Logic for stories could be added here later
+      })) || [];
+
+      // 2. Algorithm: Fetch suggested users (not followed yet)
+      const friendIds = friends.map(f => f.id);
+      const { data: suggestions, error: suggestionsError } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url')
+        .neq('id', userId) // Not me
+        .not('id', 'in', `(${[userId, ...friendIds].join(',')})`) // Not someone I already follow
+        .limit(10 - friends.length > 0 ? 10 - friends.length : 5);
+
+      if (suggestionsError) throw suggestionsError;
+
+      const suggestedProfiles = suggestions?.map((p: any) => ({
+        id: p.id,
+        name: p.full_name || p.username,
+        username: p.username,
+        avatar: p.avatar_url || 'https://via.placeholder.com/150',
+        isFriend: false,
+        hasNewStory: false
+      })) || [];
+
+      setCommunityStories([...friends, ...suggestedProfiles]);
+
+    } catch (err) {
+      console.error('Error fetching community stories:', err);
+      // Fallback to minimal suggestions if everything fails
+      setCommunityStories([]);
     }
   };
 
@@ -460,21 +510,21 @@ const App: React.FC = () => {
       {activeTab === 'community' && (
         <div className="bg-white pt-4 pb-2 overflow-x-auto no-scrollbar animate-in slide-in-from-top-4 duration-300">
           <div className="flex px-4 space-x-4">
-            {followedUsers.map((user) => (
+            {communityStories.map((user) => (
               <div
                 key={user.id}
                 onClick={() => handleNavigateToProfile(user.username)}
                 className="flex flex-col items-center space-y-1 min-w-[64px] cursor-pointer group"
               >
-                <div className={`w-16 h-16 rounded-full p-[3px] transition-transform group-hover:scale-105 ${user.hasNewStory ? 'bg-gradient-to-tr from-cyan-400 to-lime-500' : 'bg-slate-200'}`}>
+                <div className={`w-16 h-16 rounded-full p-[3px] transition-transform group-hover:scale-105 ${user.hasNewStory ? 'bg-gradient-to-tr from-cyan-400 to-lime-500' : (user.isFriend ? 'bg-cyan-200' : 'bg-slate-200')}`}>
                   <div className="w-full h-full bg-white rounded-full p-[2px] relative">
                     <img
                       src={user.avatar}
                       className="w-full h-full rounded-full object-cover"
                       alt={user.name}
                     />
-                    {user.hasNewStory && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-lime-500 border-2 border-white rounded-full animate-pulse"></span>
+                    {user.isFriend && (
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-cyan-500 border-2 border-white rounded-full"></span>
                     )}
                   </div>
                 </div>
@@ -482,7 +532,7 @@ const App: React.FC = () => {
               </div>
             ))}
 
-            {followedUsers.length === 0 && (
+            {communityStories.length === 0 && (
               <div className="flex flex-col items-center justify-center w-full py-2 text-slate-400 text-xs">
                 <p>Siga pessoas para ver seus stories</p>
               </div>
