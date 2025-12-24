@@ -11,6 +11,7 @@ import MessagesScreen from './components/MessagesScreen';
 import NotificationsScreen from './components/NotificationsScreen';
 import RecipesScreen from './components/RecipesScreen';
 import AuthScreen from './components/AuthScreen';
+import LegalScreen from './components/LegalScreen';
 import { useToast } from './components/Toast';
 import PostSkeleton from './components/PostSkeleton';
 import { Plus, Bell, Search, Home, Timer, User, Camera, Ruler, MessageSquare, Dumbbell, Apple, MessageCircle, ChefHat, Loader2, RefreshCw } from 'lucide-react';
@@ -25,7 +26,7 @@ const App: React.FC = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
 
   // Navigation State
-  const [currentView, setCurrentView] = useState<'home' | 'nutrition' | 'stopwatch' | 'profile' | 'search' | 'messages' | 'notifications' | 'recipes'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'nutrition' | 'stopwatch' | 'profile' | 'search' | 'messages' | 'notifications' | 'recipes' | 'legal'>('home');
 
   // Home Tab State
   const [activeTab, setActiveTab] = useState<'myStride' | 'community'>('myStride');
@@ -581,7 +582,11 @@ const App: React.FC = () => {
 
   // --- EARLY RETURN: AUTH SCREEN ---
   if (!isAuthenticated) {
-    return <AuthScreen onLogin={handleLogin} />;
+    // If legal screen is requested, show it, otherwise show auth
+    if (currentView === 'legal') {
+      return <LegalScreen onBack={() => setCurrentView('home')} />;
+    }
+    return <AuthScreen onLogin={handleLogin} onOpenLegal={() => setCurrentView('legal')} />;
   }
 
   const renderHomeContent = () => (
@@ -860,6 +865,7 @@ const App: React.FC = () => {
           />
         )}
         {currentView === 'recipes' && <RecipesScreen />}
+        {currentView === 'legal' && <LegalScreen onBack={() => setCurrentView('home')} />}
 
         {/* Bottom Navigation */}
         <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-slate-100 px-5 py-4 flex justify-between items-center z-30">
