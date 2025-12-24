@@ -71,8 +71,8 @@ export default async function handler(request: Request) {
                 model: 'gpt-4o-mini',
                 messages,
                 temperature: 0.3,
-                max_tokens: 500,
-                response_format: { type: 'json_object' }
+                max_tokens: 300,
+                ...(imageBase64 && mimeType ? { response_format: { type: 'json_object' } } : {})
             }),
         });
 
