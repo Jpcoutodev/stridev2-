@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Utensils, ChevronRight, Flame, Plus, ScanLine, Edit2, Check, X, Clock, ChevronDown, Loader2, Sparkles, Image as ImageIcon, Mic, MicOff } from 'lucide-react';
+import { Camera, Utensils, ChevronRight, Flame, Plus, ScanLine, Edit2, Check, X, Clock, ChevronDown, Loader2, Sparkles, Image as ImageIcon, Mic, MicOff, Calendar, Share2 } from 'lucide-react';
 import { analyzeFood } from '../lib/openai';
 import { supabase } from '../supabaseClient';
 import { compressImage, fileToBase64 } from '../lib/imageUtils';
@@ -9,21 +9,39 @@ interface Meal {
     meal_type: string;
     name: string;
     calories: number;
+    date?: string;
+}
+
+interface DailyHistory {
+    date: string;
+    totalCalories: number;
+    dayLabel: string;
 }
 
 const MEAL_TYPES = ['Café da Manhã', 'Almoço', 'Jantar', 'Lanche', 'Pré-Treino', 'Pós-Treino'];
 
+// Helper to get date in Brazil timezone (UTC-3)
+const getBrazilDate = (date: Date = new Date()): string => {
+    return date.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); // Returns YYYY-MM-DD
+};
+
 const NutritionScreen: React.FC = () => {
     // --- STATE ---
-    const [targetCalories, setTargetCalories] = useState(2000); // This could be saved in profiles
+    const [targetCalories, setTargetCalories] = useState(2000);
     const [isEditingTarget, setIsEditingTarget] = useState(false);
     const [loading, setLoading] = useState(true);
 
     // Meal List State
     const [meals, setMeals] = useState<Meal[]>([]);
 
+    // 7-day History State
+    const [history, setHistory] = useState<DailyHistory[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+
     // Derived State: Calculate Total Calories dynamically
     const currentCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
+    const remainingCalories = targetCalories - currentCalories;
+    const isExceeded = remainingCalories < 0;
 
     // Manual Add Modal State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -49,6 +67,7 @@ const NutritionScreen: React.FC = () => {
 
     useEffect(() => {
         fetchMeals();
+        fetchHistory();
     }, []);
 
     useEffect(() => {
@@ -63,8 +82,8 @@ const NutritionScreen: React.FC = () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            // Fetch meals for today
-            const today = new Date().toISOString().split('T')[0];
+            // Fetch meals for today using Brazil timezone
+            const today = getBrazilDate();
 
             const { data, error } = await supabase
                 .from('meals')
@@ -81,6 +100,49 @@ const NutritionScreen: React.FC = () => {
             console.error("Error fetching meals:", err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchHistory = async () => {
+        try {
+            setLoadingHistory(true);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            // Get last 7 days including today
+            const dates: string[] = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                dates.push(getBrazilDate(date));
+            }
+
+            const { data, error } = await supabase
+                .from('meals')
+                .select('date, calories')
+                .eq('user_id', session.user.id)
+                .in('date', dates);
+
+            if (error) throw error;
+
+            // Aggregate by date
+            const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            const aggregated: DailyHistory[] = dates.map(dateStr => {
+                const dayMeals = data?.filter(m => m.date === dateStr) || [];
+                const total = dayMeals.reduce((sum, m) => sum + m.calories, 0);
+                const dateObj = new Date(dateStr + 'T12:00:00');
+                return {
+                    date: dateStr,
+                    totalCalories: total,
+                    dayLabel: dayNames[dateObj.getDay()]
+                };
+            });
+
+            setHistory(aggregated);
+        } catch (err) {
+            console.error("Error fetching history:", err);
+        } finally {
+            setLoadingHistory(false);
         }
     };
 
@@ -293,11 +355,21 @@ const NutritionScreen: React.FC = () => {
                                     title="Editar Meta"
                                 >
                                     <span className="text-lg font-medium font-mono group-hover:text-cyan-600 text-slate-500">{targetCalories} kcal</span>
-                                    <Edit2 size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <Edit2 size={14} className="text-slate-400 group-hover:text-cyan-600 transition-colors" />
                                 </button>
                             )}
                         </div>
                     </div>
+                </div>
+
+                {/* Remaining/Exceeded Calories Display */}
+                <div className={`mt-4 px-4 py-2 rounded-full flex items-center gap-2 ${isExceeded ? 'bg-red-100 text-red-600' : 'bg-lime-100 text-lime-700'}`}>
+                    <Flame size={16} className={isExceeded ? 'text-red-500' : 'text-lime-500'} />
+                    <span className="text-sm font-bold">
+                        {isExceeded
+                            ? `${Math.abs(remainingCalories)} kcal excedidas`
+                            : `${remainingCalories} kcal restantes`}
+                    </span>
                 </div>
             </div>
 
@@ -365,6 +437,97 @@ const NutritionScreen: React.FC = () => {
                         className="w-full mt-3 py-3 border border-dashed border-slate-300 rounded-xl text-slate-500 text-sm font-semibold hover:bg-white hover:border-cyan-400 hover:text-cyan-600 hover:shadow-sm transition-all flex items-center justify-center gap-2 bg-slate-50"
                     >
                         <Plus size={16} /> Adicionar Manualmente
+                    </button>
+                </div>
+
+                {/* 7-Day History Section */}
+                <div className="mb-6 animate-in slide-in-from-bottom-3 duration-700">
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <Calendar size={14} /> Últimos 7 Dias
+                    </h3>
+
+                    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                        {loadingHistory ? (
+                            <div className="flex justify-center py-4"><Loader2 className="animate-spin text-cyan-600" /></div>
+                        ) : (
+                            <>
+                                {/* Bar Chart */}
+                                <div className="flex items-end justify-between h-32 gap-2 mb-4">
+                                    {history.map((day, index) => {
+                                        const maxCal = Math.max(...history.map(h => h.totalCalories), targetCalories);
+                                        const heightPercent = maxCal > 0 ? (day.totalCalories / maxCal) * 100 : 0;
+                                        const isToday = index === history.length - 1;
+                                        const isOverTarget = day.totalCalories > targetCalories;
+
+                                        return (
+                                            <div key={day.date} className="flex flex-col items-center flex-1">
+                                                <span className="text-xs font-bold text-slate-500 mb-1">
+                                                    {day.totalCalories > 0 ? day.totalCalories : '-'}
+                                                </span>
+                                                <div
+                                                    className={`w-full rounded-t-lg transition-all ${isToday
+                                                            ? isOverTarget ? 'bg-red-400' : 'bg-cyan-500'
+                                                            : isOverTarget ? 'bg-red-200' : 'bg-lime-300'
+                                                        }`}
+                                                    style={{ height: `${Math.max(heightPercent, 4)}%` }}
+                                                />
+                                                <span className={`text-xs mt-2 font-semibold ${isToday ? 'text-cyan-600' : 'text-slate-400'}`}>
+                                                    {day.dayLabel}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Weekly Summary */}
+                                <div className="flex justify-between items-center pt-3 border-t border-slate-100">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs text-slate-400">Média Diária</span>
+                                        <span className="text-lg font-bold text-slate-700">
+                                            {Math.round(history.reduce((sum, d) => sum + d.totalCalories, 0) / 7)} kcal
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-xs text-slate-400">Total Semana</span>
+                                        <span className="text-lg font-bold text-slate-700">
+                                            {history.reduce((sum, d) => sum + d.totalCalories, 0)} kcal
+                                        </span>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Post to Feed Button */}
+                    <button
+                        onClick={async () => {
+                            const totalWeek = history.reduce((sum, d) => sum + d.totalCalories, 0);
+                            const avgDaily = Math.round(totalWeek / 7);
+
+                            const caption = `📊 Meu resumo nutricional da semana:\n\n` +
+                                `🔥 Total: ${totalWeek} kcal\n` +
+                                `📈 Média diária: ${avgDaily} kcal\n` +
+                                `🎯 Meta diária: ${targetCalories} kcal\n\n` +
+                                `#StrideUp #Nutrição #SaúdeEmDia`;
+
+                            const { data: { session } } = await supabase.auth.getSession();
+                            if (!session) return;
+
+                            const { error } = await supabase.from('posts').insert({
+                                user_id: session.user.id,
+                                type: 'text',
+                                caption: caption
+                            });
+
+                            if (error) {
+                                alert('Erro ao postar: ' + error.message);
+                            } else {
+                                alert('Resumo postado no seu feed! 🎉');
+                            }
+                        }}
+                        className="w-full mt-3 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold hover:from-cyan-400 hover:to-blue-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
+                    >
+                        <Share2 size={18} /> Postar Resumo no My Stride
                     </button>
                 </div>
 

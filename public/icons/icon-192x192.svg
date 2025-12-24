@@ -1,0 +1,21 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" rx="40" fill="url(#bg)"/>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06b6d4"/>
+      <stop offset="100%" style="stop-color:#84cc16"/>
+    </linearGradient>
+  </defs>
+  <!-- S letter stylized -->
+  <path d="M96 40C70 40 52 55 52 75C52 95 70 105 96 110C122 115 140 125 140 145C140 165 122 180 96 180C70 180 52 165 52 145" 
+        stroke="url(#accent)" 
+        stroke-width="16" 
+        stroke-linecap="round" 
+        fill="none"/>
+  <!-- Running figure accent -->
+  <circle cx="96" cy="65" r="12" fill="url(#accent)"/>
+</svg>

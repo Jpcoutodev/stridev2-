@@ -282,7 +282,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
     // 2. Measurement Post WITHOUT Image (Render specialized Data Card)
     if (post.type === 'measurement' && !post.imageUrl) {
       return (
-        <div className="w-full aspect-[4/3] bg-gradient-to-br from-slate-800 to-slate-900 flex flex-col items-center justify-center p-8 text-center relative overflow-hidden group">
+        <div className="w-full min-h-[200px] py-8 bg-gradient-to-br from-slate-800 to-slate-900 flex flex-col items-center justify-center p-8 text-center relative overflow-hidden group">
           {/* Decorative Background Elements */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl group-hover:bg-cyan-500/20 transition-colors duration-700"></div>
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-lime-500/10 rounded-full blur-3xl group-hover:bg-lime-500/20 transition-colors duration-700"></div>
@@ -302,11 +302,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
             {post.weight && post.measurements && <div className="w-16 h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent"></div>}
 
             {post.measurements && (
-              <div className="flex flex-col items-center animate-in slide-in-from-bottom-2 duration-700 delay-100">
-                <Ruler size={24} className="text-lime-400 mb-2" />
-                <p className="text-lg font-medium text-slate-300 max-w-[80%] leading-snug">
-                  {post.measurements}
-                </p>
+              <div className="flex flex-col items-center animate-in slide-in-from-bottom-2 duration-700 delay-100 w-full">
+                <Ruler size={24} className="text-lime-400 mb-3" />
+                <div className="flex flex-wrap justify-center gap-2 max-w-full px-4">
+                  {post.measurements.split(' | ').map((item, index) => (
+                    <span
+                      key={index}
+                      className="text-sm font-medium text-slate-200 bg-slate-700/50 px-3 py-1.5 rounded-full border border-slate-600/50 whitespace-nowrap"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
           </div>
