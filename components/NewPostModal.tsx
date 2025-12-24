@@ -374,7 +374,7 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ isOpen, onClose, onSave, po
                     type="button"
                     onClick={addWorkoutItem}
                     disabled={!currentActivity || !currentDetail}
-                    className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors aspect-square flex items-center justify-center"
+                    className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center shrink-0 min-w-[48px]"
                   >
                     <Plus size={24} />
                   </button>
