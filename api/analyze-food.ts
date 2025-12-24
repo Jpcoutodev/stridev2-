@@ -16,12 +16,48 @@ export default async function handler(request: Request) {
     }
 
     try {
-        const { imageBase64, mimeType } = await request.json();
+        const { imageBase64, mimeType, textDescription } = await request.json();
 
-        if (!imageBase64 || !mimeType) {
-            return new Response(JSON.stringify({ error: 'Missing imageBase64 or mimeType' }), {
+        // Support either image OR text description
+        if (!imageBase64 && !textDescription) {
+            return new Response(JSON.stringify({ error: 'Missing imageBase64 or textDescription' }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        const messages: any[] = [
+            {
+                role: 'system',
+                content: 'Você é um nutricionista especialista. Analise alimentos (por imagem ou descrição textual) e retorne APENAS um JSON válido com os campos "foodName" (nome descritivo do alimento) e "calories" (estimativa de calorias totais). Sem texto adicional, apenas o JSON.'
+            }
+        ];
+
+        // Build user message based on input type
+        if (imageBase64 && mimeType) {
+            // Image analysis
+            messages.push({
+                role: 'user',
+                content: [
+                    {
+                        type: 'image_url',
+                        image_url: {
+                            url: `data:${mimeType};base64,${imageBase64}`
+                        }
+                    },
+                    {
+                        type: 'text',
+                        text: textDescription
+                            ? `Identifique o alimento nesta imagem: "${textDescription}". Estime as calorias totais aproximadas. Retorne apenas o JSON no formato: {"foodName": "...", "calories": 123}`
+                            : 'Identifique o alimento nesta imagem e estime as calorias totais aproximadas. Retorne apenas o JSON no formato: {"foodName": "...", "calories": 123}'
+                    }
+                ]
+            });
+        } else if (textDescription) {
+            // Text-only analysis
+            messages.push({
+                role: 'user',
+                content: `Analise este alimento: "${textDescription}". Estime as calorias totais aproximadas considerando a quantidade mencionada (se houver). Retorne apenas o JSON no formato: {"foodName": "...", "calories": 123}`
             });
         }
 
@@ -33,27 +69,7 @@ export default async function handler(request: Request) {
             },
             body: JSON.stringify({
                 model: 'gpt-4o-mini',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'Você é um nutricionista especialista. Analise imagens de alimentos e retorne APENAS um JSON válido com os campos "foodName" (nome curto do alimento) e "calories" (estimativa de calorias). Sem texto adicional, apenas o JSON.'
-                    },
-                    {
-                        role: 'user',
-                        content: [
-                            {
-                                type: 'image_url',
-                                image_url: {
-                                    url: `data:${mimeType};base64,${imageBase64}`
-                                }
-                            },
-                            {
-                                type: 'text',
-                                text: 'Identifique o alimento nesta imagem e estime as calorias totais aproximadas. Retorne apenas o JSON no formato: {"foodName": "...", "calories": 123}'
-                            }
-                        ]
-                    }
-                ],
+                messages,
                 temperature: 0.3,
                 max_tokens: 500,
                 response_format: { type: 'json_object' }

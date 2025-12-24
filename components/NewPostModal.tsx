@@ -362,19 +362,19 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ isOpen, onClose, onSave, po
                   placeholder="Atividade (Ex: Corrida)"
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-medium text-slate-900 focus:outline-none focus:border-orange-500"
                 />
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full">
                   <input
                     type="text"
                     value={currentDetail}
                     onChange={(e) => setCurrentDetail(e.target.value)}
                     placeholder="Detalhes (Ex: 5km)"
-                    className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 font-medium text-slate-900 focus:outline-none focus:border-orange-500"
+                    className="flex-1 min-w-0 bg-white border border-slate-200 rounded-xl px-4 py-3 font-medium text-slate-900 focus:outline-none focus:border-orange-500"
                   />
                   <button
                     type="button"
                     onClick={addWorkoutItem}
                     disabled={!currentActivity || !currentDetail}
-                    className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center shrink-0 min-w-[48px]"
+                    className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center shrink-0 w-12 h-12"
                   >
                     <Plus size={24} />
                   </button>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Utensils, ChevronRight, Flame, Plus, ScanLine, Edit2, Check, X, Clock, ChevronDown, Loader2, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { Camera, Utensils, ChevronRight, Flame, Plus, ScanLine, Edit2, Check, X, Clock, ChevronDown, Loader2, Sparkles, Image as ImageIcon, Mic, MicOff } from 'lucide-react';
 import { analyzeFood } from '../lib/openai';
 import { supabase } from '../supabaseClient';
 import { compressImage, fileToBase64 } from '../lib/imageUtils';
@@ -33,6 +33,9 @@ const NutritionScreen: React.FC = () => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisImage, setAnalysisImage] = useState<string | null>(null);
     const [analysisResult, setAnalysisResult] = useState<{ name: string, calories: number } | null>(null);
+    const [foodDescription, setFoodDescription] = useState('');
+    const [isRecording, setIsRecording] = useState(false);
+    const recognitionRef = useRef<any>(null);
 
     // Shared Form State (Used by both Manual and AI modals)
     const [newMealType, setNewMealType] = useState(MEAL_TYPES[3]); // Default to Lanche
@@ -158,17 +161,62 @@ const NutritionScreen: React.FC = () => {
         }
     };
 
+    const toggleVoiceInput = () => {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert('Reconhecimento de voz não suportado neste navegador.');
+            return;
+        }
+
+        if (isRecording) {
+            recognitionRef.current?.stop();
+            setIsRecording(false);
+        } else {
+            const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onresult = (event: any) => {
+                const transcript = event.results[0][0].transcript;
+                setFoodDescription(prev => prev ? `${prev}, ${transcript}` : transcript);
+            };
+
+            recognition.onerror = (event: any) => {
+                console.error('Speech recognition error:', event.error);
+                setIsRecording(false);
+            };
+
+            recognition.onend = () => {
+                setIsRecording(false);
+            };
+
+            recognitionRef.current = recognition;
+            recognition.start();
+            setIsRecording(true);
+        }
+    };
+
     const handleAnalyzeWithAI = async () => {
-        if (!analysisImage) return;
+        // Allow analysis with either image OR text description
+        if (!analysisImage && !foodDescription.trim()) {
+            alert('Adicione uma foto ou descrição do alimento.');
+            return;
+        }
 
         setIsAnalyzing(true);
 
         try {
-            const base64Data = analysisImage.split(',')[1];
-            // Since we convert to JPEG in resizeImage, it's always jpeg
-            const mimeType = 'image/jpeg';
+            let base64Data;
+            let mimeType;
 
-            const result = await analyzeFood(base64Data, mimeType);
+            if (analysisImage) {
+                base64Data = analysisImage.split(',')[1];
+                // Since we convert to JPEG in resizeImage, it's always jpeg
+                mimeType = 'image/jpeg';
+            }
+
+            const result = await analyzeFood(base64Data, mimeType, foodDescription.trim() || undefined);
 
             setAnalysisResult({
                 name: result.foodName,
@@ -433,6 +481,31 @@ const NutritionScreen: React.FC = () => {
                                         <ChevronDown size={18} />
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Text Input with Voice Button */}
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block pl-1">Descrição do Alimento</label>
+                                <div className="flex gap-2 w-full">
+                                    <input
+                                        type="text"
+                                        value={foodDescription}
+                                        onChange={(e) => setFoodDescription(e.target.value)}
+                                        placeholder="Ex: uma maçã, 500g de arroz, 2 tomates"
+                                        className="flex-1 min-w-0 bg-slate-50 border border-slate-200 text-slate-800 font-medium py-3 px-4 rounded-xl focus:outline-none focus:border-cyan-500 focus:bg-white transition-colors"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={toggleVoiceInput}
+                                        className={`p-3 rounded-xl transition-all flex items-center justify-center shrink-0 w-12 h-12 ${isRecording
+                                                ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
+                                                : 'bg-cyan-100 hover:bg-cyan-200 text-cyan-600'
+                                            }`}
+                                    >
+                                        {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
+                                    </button>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1 pl-1">Digite ou fale o nome e quantidade</p>
                             </div>
 
                             {/* 2. Image Upload / Preview Area */}

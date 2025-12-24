@@ -1,14 +1,14 @@
 // OpenAI Client Configuration
 // Calls serverless API endpoints on Vercel to avoid CORS issues
 
-// Analyze food image and return name + calories
-export async function analyzeFood(imageBase64: string, mimeType: string): Promise<{ foodName: string; calories: number }> {
+// Analyze food from image and/or text description
+export async function analyzeFood(imageBase64?: string, mimeType?: string, textDescription?: string): Promise<{ foodName: string; calories: number }> {
     const response = await fetch('/api/analyze-food', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ imageBase64, mimeType }),
+        body: JSON.stringify({ imageBase64, mimeType, textDescription }),
     });
 
     if (!response.ok) {
