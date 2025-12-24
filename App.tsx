@@ -32,6 +32,9 @@ const App: React.FC = () => {
 
   // Data State
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
+  const [feedPage, setFeedPage] = useState(0);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const POSTS_PER_PAGE = 20;
   const [myPostList, setMyPostList] = useState<PostModel[]>([]);
   const [communityPostList, setCommunityPostList] = useState<PostModel[]>([]);
 
@@ -255,22 +258,38 @@ const App: React.FC = () => {
     }
   };
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (reset: boolean = true) => {
+    if (!reset && !hasMorePosts) return; // Don't fetch if no more posts
+
     setIsLoadingPosts(true);
     try {
-      // Fetch posts and join with profiles to get username/avatar/privacy
+      const currentPage = reset ? 0 : feedPage;
+      const from = currentPage * POSTS_PER_PAGE;
+      const to = from + POSTS_PER_PAGE - 1;
+
+      // Fetch posts with pagination
       const { data, error } = await supabase
         .from('posts')
         .select(`
                 *,
                 profiles (username, avatar_url, is_private)
             `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
 
       if (data) {
-        console.log("Posts carregados:", data.length);
+        console.log(`Posts carregados (página ${currentPage}):`, data.length);
+
+        // Check if there are more posts
+        setHasMorePosts(data.length === POSTS_PER_PAGE);
+
+        if (reset) {
+          setFeedPage(1);
+        } else {
+          setFeedPage(prev => prev + 1);
+        }
 
         // For shared posts, we need to fetch the original post data
         const sharedPostIds = data.filter(p => p.shared_post_id).map(p => p.shared_post_id);
@@ -336,7 +355,7 @@ const App: React.FC = () => {
 
         // Filter out private posts from community feed, EXCEPT from approved followers
         const userId = session?.user?.id;
-        setCommunityPostList(mappedPosts.filter(p => {
+        const filteredCommunity = mappedPosts.filter(p => {
           // Don't show my own posts in community feed (they're in "My Stride")
           if (userId && p.userId === userId) return false;
 
@@ -348,12 +367,17 @@ const App: React.FC = () => {
             return followingIds.has(p.userId);
           }
           return false;
-        }));
-        // Filter for "My Stride" (all my posts, including posts I shared)
-        if (userId) {
-          setMyPostList(mappedPosts.filter(p => p.userId === userId));
+        });
+
+        const filteredMyPosts = userId ? mappedPosts.filter(p => p.userId === userId) : [];
+
+        // Append or replace based on reset flag
+        if (reset) {
+          setCommunityPostList(filteredCommunity);
+          setMyPostList(filteredMyPosts);
         } else {
-          setMyPostList([]);
+          setCommunityPostList(prev => [...prev, ...filteredCommunity]);
+          setMyPostList(prev => [...prev, ...filteredMyPosts]);
         }
       }
     } catch (err: any) {
@@ -695,11 +719,36 @@ const App: React.FC = () => {
                 onUserClick={handleNavigateToProfile}
               />
             ))}
+
+            {/* Load More Button */}
+            {postsToDisplay.length > 0 && hasMorePosts && (
+              <div className="flex justify-center py-6">
+                <button
+                  onClick={() => fetchPosts(false)}
+                  disabled={isLoadingPosts}
+                  className="flex items-center gap-2 bg-white text-cyan-600 font-bold px-6 py-3 rounded-full shadow-md border border-cyan-100 hover:bg-cyan-50 transition-all disabled:opacity-50"
+                >
+                  {isLoadingPosts ? (
+                    <><Loader2 size={18} className="animate-spin" /> Carregando...</>
+                  ) : (
+                    <><RefreshCw size={18} /> Carregar Mais</>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* No More Posts Message */}
+            {postsToDisplay.length > 0 && !hasMorePosts && (
+              <div className="text-center py-6 text-slate-400 text-sm">
+                Você já viu tudo! 🎉
+              </div>
+            )}
+
             {postsToDisplay.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                 <Dumbbell size={48} className="mb-4 opacity-50" />
                 <p>Nenhum post encontrado no banco de dados.</p>
-                <button onClick={fetchPosts} className="mt-4 flex items-center gap-2 text-cyan-600 font-bold bg-white px-4 py-2 rounded-full shadow-sm">
+                <button onClick={() => fetchPosts(true)} className="mt-4 flex items-center gap-2 text-cyan-600 font-bold bg-white px-4 py-2 rounded-full shadow-sm">
                   <RefreshCw size={16} /> Tentar Novamente
                 </button>
               </div>
