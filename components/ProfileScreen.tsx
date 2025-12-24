@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Camera, User, Lock, Globe, Save, Ruler, Weight, MapPin, Loader2, LogOut, AtSign, AlertCircle } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { compressImage, convertHeicToJpeg } from '../lib/imageUtils';
+import { useToast } from './Toast';
 
 interface ProfileScreenProps {
     onLogout: () => void;
@@ -9,6 +10,7 @@ interface ProfileScreenProps {
 }
 
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => {
+    const { showToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -106,7 +108,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
                 setProfile(prev => ({ ...prev, avatar_url: url }));
             } catch (error) {
                 console.error("Error compressing profile image:", error);
-                alert("Erro ao processar imagem de perfil.");
+                showToast('Erro ao processar imagem de perfil.', 'error');
             }
         }
     };
@@ -205,7 +207,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
 
             if (onUpdate) onUpdate();
 
-            alert('Perfil atualizado com sucesso!');
+            showToast('Perfil atualizado com sucesso!', 'success');
         } catch (error: any) {
             console.error(error);
             setErrorMsg(error.message || 'Ocorreu um erro ao salvar o perfil.');

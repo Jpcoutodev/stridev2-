@@ -11,6 +11,7 @@ import MessagesScreen from './components/MessagesScreen';
 import NotificationsScreen from './components/NotificationsScreen';
 import RecipesScreen from './components/RecipesScreen';
 import AuthScreen from './components/AuthScreen';
+import { ToastProvider } from './components/Toast';
 import { Plus, Bell, Search, Home, Timer, User, Camera, Ruler, MessageSquare, Dumbbell, Apple, MessageCircle, ChefHat, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -32,6 +33,7 @@ const App: React.FC = () => {
 
   // Data State
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [feedPage, setFeedPage] = useState(0);
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const POSTS_PER_PAGE = 20;
@@ -261,7 +263,13 @@ const App: React.FC = () => {
   const fetchPosts = async (reset: boolean = true) => {
     if (!reset && !hasMorePosts) return; // Don't fetch if no more posts
 
-    setIsLoadingPosts(true);
+    // Use different loading states for initial load vs load more
+    if (reset) {
+      setIsLoadingPosts(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+
     try {
       const currentPage = reset ? 0 : feedPage;
       const from = currentPage * POSTS_PER_PAGE;
@@ -388,6 +396,7 @@ const App: React.FC = () => {
       }
     } finally {
       setIsLoadingPosts(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -647,7 +656,7 @@ const App: React.FC = () => {
             className="flex-1 relative pb-3 text-center focus:outline-none transition-colors"
           >
             <span className={`text-sm font-bold tracking-wide ${activeTab === 'myStride' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}>
-              My Stride
+              My Strides
             </span>
             {activeTab === 'myStride' && (
               <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-lime-400 rounded-t-full mx-8 animate-in fade-in duration-300"></div>
@@ -711,7 +720,7 @@ const App: React.FC = () => {
             <p className="text-slate-400 font-medium">Buscando no Supabase...</p>
           </div>
         ) : (
-          <div key={activeTab} className="animate-in fade-in slide-in-from-bottom-2 duration-500 pt-4">
+          <div className="pt-4">
             {postsToDisplay.map((post) => (
               <PostCard
                 key={post.id}
@@ -728,10 +737,10 @@ const App: React.FC = () => {
               <div className="flex justify-center py-6">
                 <button
                   onClick={() => fetchPosts(false)}
-                  disabled={isLoadingPosts}
+                  disabled={isLoadingMore}
                   className="flex items-center gap-2 bg-white text-cyan-600 font-bold px-6 py-3 rounded-full shadow-md border border-cyan-100 hover:bg-cyan-50 transition-all disabled:opacity-50"
                 >
-                  {isLoadingPosts ? (
+                  {isLoadingMore ? (
                     <><Loader2 size={18} className="animate-spin" /> Carregando...</>
                   ) : (
                     <><RefreshCw size={18} /> Carregar Mais</>
@@ -801,102 +810,104 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex justify-center">
-      <div className="w-full max-w-md bg-white min-h-screen relative shadow-2xl flex flex-col">
+    <ToastProvider>
+      <div className="min-h-screen bg-slate-50 flex justify-center">
+        <div className="w-full max-w-md bg-white min-h-screen relative shadow-2xl flex flex-col">
 
-        {/* Main Content Switcher */}
-        {currentView === 'home' && renderHomeContent()}
-        {currentView === 'nutrition' && <NutritionScreen />}
-        {currentView === 'stopwatch' && <StopwatchScreen />}
-        {currentView === 'profile' && <ProfileScreen onLogout={handleLogout} onUpdate={handleProfileUpdate} />}
-        {currentView === 'search' && (
-          <SearchScreen
-            targetUsername={targetProfileUser}
-            onBack={handleBackFromSearch}
-            onMessageClick={(userId) => {
-              setTargetMessageUser(userId);
-              setCurrentView('messages');
-            }}
-          />
-        )}
-        {currentView === 'messages' && (
-          <MessagesScreen
-            onBack={() => {
-              setCurrentView('home');
-              setTargetMessageUser(null);
-              if (session?.user?.id) fetchUnreadMessagesCount(session.user.id);
-            }}
-            targetUserId={targetMessageUser}
-          />
-        )}
-        {currentView === 'notifications' && (
-          <NotificationsScreen
-            onBack={() => setCurrentView('home')}
-            onUserClick={(username) => {
-              setTargetProfileUser(username);
-              setCurrentView('search');
-            }}
-            onNotificationClick={(notif) => {
-              if (notif.type === 'message') {
-                setTargetMessageUser(notif.actor_id);
+          {/* Main Content Switcher */}
+          {currentView === 'home' && renderHomeContent()}
+          {currentView === 'nutrition' && <NutritionScreen />}
+          {currentView === 'stopwatch' && <StopwatchScreen />}
+          {currentView === 'profile' && <ProfileScreen onLogout={handleLogout} onUpdate={handleProfileUpdate} />}
+          {currentView === 'search' && (
+            <SearchScreen
+              targetUsername={targetProfileUser}
+              onBack={handleBackFromSearch}
+              onMessageClick={(userId) => {
+                setTargetMessageUser(userId);
                 setCurrentView('messages');
-              } else {
-                setTargetProfileUser(notif.actor?.username);
+              }}
+            />
+          )}
+          {currentView === 'messages' && (
+            <MessagesScreen
+              onBack={() => {
+                setCurrentView('home');
+                setTargetMessageUser(null);
+                if (session?.user?.id) fetchUnreadMessagesCount(session.user.id);
+              }}
+              targetUserId={targetMessageUser}
+            />
+          )}
+          {currentView === 'notifications' && (
+            <NotificationsScreen
+              onBack={() => setCurrentView('home')}
+              onUserClick={(username) => {
+                setTargetProfileUser(username);
                 setCurrentView('search');
-              }
-            }}
+              }}
+              onNotificationClick={(notif) => {
+                if (notif.type === 'message') {
+                  setTargetMessageUser(notif.actor_id);
+                  setCurrentView('messages');
+                } else {
+                  setTargetProfileUser(notif.actor?.username);
+                  setCurrentView('search');
+                }
+              }}
+            />
+          )}
+          {currentView === 'recipes' && <RecipesScreen />}
+
+          {/* Bottom Navigation */}
+          <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-slate-100 px-5 py-4 flex justify-between items-center z-30">
+            <button
+              onClick={() => { setCurrentView('home'); setTargetProfileUser(null); }}
+              className={`${currentView === 'home' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
+            >
+              <Home size={24} strokeWidth={currentView === 'home' ? 3 : 2.5} />
+              {currentView === 'home' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
+            </button>
+
+            <button
+              onClick={() => { setCurrentView('nutrition'); setTargetProfileUser(null); }}
+              className={`${currentView === 'nutrition' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
+            >
+              <Apple size={24} strokeWidth={currentView === 'nutrition' ? 3 : 2.5} />
+              {currentView === 'nutrition' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
+            </button>
+
+            <div className="w-8"></div> {/* Spacer for FAB */}
+
+            <button
+              onClick={() => { setCurrentView('recipes'); setTargetProfileUser(null); }}
+              className={`${currentView === 'recipes' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
+            >
+              <ChefHat size={24} strokeWidth={currentView === 'recipes' ? 3 : 2.5} />
+              {currentView === 'recipes' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
+            </button>
+
+            <button
+              onClick={() => { setCurrentView('stopwatch'); setTargetProfileUser(null); }}
+              className={`${currentView === 'stopwatch' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
+            >
+              <Timer size={24} strokeWidth={currentView === 'stopwatch' ? 3 : 2.5} />
+              {currentView === 'stopwatch' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
+            </button>
+
+          </div>
+
+          {/* Modal */}
+          <NewPostModal
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            onSave={handleSavePost}
+            postType={selectedPostType}
+            initialData={editingPost}
           />
-        )}
-        {currentView === 'recipes' && <RecipesScreen />}
-
-        {/* Bottom Navigation */}
-        <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-slate-100 px-5 py-4 flex justify-between items-center z-30">
-          <button
-            onClick={() => { setCurrentView('home'); setTargetProfileUser(null); }}
-            className={`${currentView === 'home' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
-          >
-            <Home size={24} strokeWidth={currentView === 'home' ? 3 : 2.5} />
-            {currentView === 'home' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
-          </button>
-
-          <button
-            onClick={() => { setCurrentView('nutrition'); setTargetProfileUser(null); }}
-            className={`${currentView === 'nutrition' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
-          >
-            <Apple size={24} strokeWidth={currentView === 'nutrition' ? 3 : 2.5} />
-            {currentView === 'nutrition' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
-          </button>
-
-          <div className="w-8"></div> {/* Spacer for FAB */}
-
-          <button
-            onClick={() => { setCurrentView('recipes'); setTargetProfileUser(null); }}
-            className={`${currentView === 'recipes' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
-          >
-            <ChefHat size={24} strokeWidth={currentView === 'recipes' ? 3 : 2.5} />
-            {currentView === 'recipes' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
-          </button>
-
-          <button
-            onClick={() => { setCurrentView('stopwatch'); setTargetProfileUser(null); }}
-            className={`${currentView === 'stopwatch' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
-          >
-            <Timer size={24} strokeWidth={currentView === 'stopwatch' ? 3 : 2.5} />
-            {currentView === 'stopwatch' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
-          </button>
-
         </div>
-
-        {/* Modal */}
-        <NewPostModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          onSave={handleSavePost}
-          postType={selectedPostType}
-          initialData={editingPost}
-        />
       </div>
-    </div>
+    </ToastProvider>
   );
 };
 

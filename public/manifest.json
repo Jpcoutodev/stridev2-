@@ -9,15 +9,15 @@
     "orientation": "portrait",
     "icons": [
         {
-            "src": "/icons/icon-192x192.svg",
+            "src": "https://qgbxduvipeadycxremqa.supabase.co/storage/v1/object/public/logo/logos/logo%202.png",
             "sizes": "192x192",
-            "type": "image/svg+xml",
+            "type": "image/png",
             "purpose": "any maskable"
         },
         {
-            "src": "/icons/icon-512x512.svg",
+            "src": "https://qgbxduvipeadycxremqa.supabase.co/storage/v1/object/public/logo/logos/logo%202.png",
             "sizes": "512x512",
-            "type": "image/svg+xml",
+            "type": "image/png",
             "purpose": "any maskable"
         }
     ],

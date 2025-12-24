@@ -3,6 +3,7 @@ import { Camera, Utensils, ChevronRight, Flame, Plus, ScanLine, Edit2, Check, X,
 import { analyzeFood } from '../lib/openai';
 import { supabase } from '../supabaseClient';
 import { compressImage, fileToBase64 } from '../lib/imageUtils';
+import { useToast } from './Toast';
 
 interface Meal {
     id: string;
@@ -26,6 +27,7 @@ const getBrazilDate = (date: Date = new Date()): string => {
 };
 
 const NutritionScreen: React.FC = () => {
+    const { showToast } = useToast();
     // --- STATE ---
     const [targetCalories, setTargetCalories] = useState(2000);
     const [isEditingTarget, setIsEditingTarget] = useState(false);
@@ -196,7 +198,7 @@ const NutritionScreen: React.FC = () => {
             setIsAnalyzeModalOpen(false);
 
         } catch (err: any) {
-            alert('Erro ao salvar refeição: ' + err.message);
+            showToast('Erro ao salvar refeição: ' + err.message, 'error');
         }
     };
 
@@ -218,14 +220,14 @@ const NutritionScreen: React.FC = () => {
                 setAnalysisResult(null);
             } catch (err: any) {
                 console.error("Error processing image:", err);
-                alert(`Erro ao processar imagem: ${err.message}`);
+                showToast(`Erro ao processar imagem: ${err.message}`, 'error');
             }
         }
     };
 
     const toggleVoiceInput = () => {
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert('Reconhecimento de voz não suportado neste navegador.');
+            showToast('Reconhecimento de voz não suportado neste navegador.', 'warning');
             return;
         }
 
@@ -262,7 +264,7 @@ const NutritionScreen: React.FC = () => {
     const handleAnalyzeWithAI = async () => {
         // Allow analysis with either image OR text description
         if (!analysisImage && !foodDescription.trim()) {
-            alert('Adicione uma foto ou descrição do alimento.');
+            showToast('Adicione uma foto ou descrição do alimento.', 'warning');
             return;
         }
 
@@ -290,7 +292,7 @@ const NutritionScreen: React.FC = () => {
         } catch (error: any) {
             console.error("OpenAI Error:", error);
             // Show ACTUAL error message to user for debugging
-            alert(`Erro na IA: ${error.message || JSON.stringify(error)}`);
+            showToast(`Erro na IA: ${error.message || JSON.stringify(error)}`, 'error');
         } finally {
             setIsAnalyzing(false);
         }
@@ -466,8 +468,8 @@ const NutritionScreen: React.FC = () => {
                                                 </span>
                                                 <div
                                                     className={`w-full rounded-t-lg transition-all ${isToday
-                                                            ? isOverTarget ? 'bg-red-400' : 'bg-cyan-500'
-                                                            : isOverTarget ? 'bg-red-200' : 'bg-lime-300'
+                                                        ? isOverTarget ? 'bg-red-400' : 'bg-cyan-500'
+                                                        : isOverTarget ? 'bg-red-200' : 'bg-lime-300'
                                                         }`}
                                                     style={{ height: `${Math.max(heightPercent, 4)}%` }}
                                                 />
@@ -520,9 +522,9 @@ const NutritionScreen: React.FC = () => {
                             });
 
                             if (error) {
-                                alert('Erro ao postar: ' + error.message);
+                                showToast('Erro ao postar: ' + error.message, 'error');
                             } else {
-                                alert('Resumo postado no seu feed! 🎉');
+                                showToast('Resumo postado no seu feed! 🎉', 'success');
                             }
                         }}
                         className="w-full mt-3 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold hover:from-cyan-400 hover:to-blue-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
