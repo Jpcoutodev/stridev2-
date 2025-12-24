@@ -334,13 +334,18 @@ const App: React.FC = () => {
           };
         });
 
-        // Filter out private posts from community feed, EXCEPT from people I follow OR people who follow me
+        // Filter out private posts from community feed, EXCEPT from approved followers
         const userId = session?.user?.id;
         setCommunityPostList(mappedPosts.filter(p => {
+          // Don't show my own posts in community feed (they're in "My Stride")
+          if (userId && p.userId === userId) return false;
+
+          // Public posts: always show
           if (!p.isPrivate) return true;
+
+          // Private posts: only show if I'm following them with accepted status
           if (userId) {
-            // I follow them OR they follow me
-            return followingIds.has(p.userId) || followerIds.has(p.userId) || p.userId === userId;
+            return followingIds.has(p.userId);
           }
           return false;
         }));
