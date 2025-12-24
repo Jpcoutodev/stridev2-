@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Square, Flag, RotateCcw, Timer, Coffee, Settings2, Minus, Plus, Dumbbell, Volume2, VolumeX, Save, Loader2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { useToast } from './Toast';
 
 type Mode = 'free' | 'interval';
 type IntervalPhase = 'ready' | 'work' | 'rest' | 'finished';
 
 const StopwatchScreen: React.FC = () => {
+  const { showToast } = useToast();
   const [mode, setMode] = useState<Mode>('free');
   const [isMuted, setIsMuted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -95,7 +97,7 @@ const StopwatchScreen: React.FC = () => {
       setIsSaving(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        alert("Você precisa estar logado para salvar.");
+        showToast("Você precisa estar logado para salvar.", 'error');
         return;
       }
 
@@ -112,14 +114,14 @@ const StopwatchScreen: React.FC = () => {
       const { error } = await supabase.from('workouts').insert(payload);
       if (error) throw error;
 
-      alert("Treino salvo com sucesso!");
+      showToast("Treino salvo com sucesso!", 'success');
 
       // Reset after save
       if (mode === 'free') handleFreeReset();
       else resetInterval();
 
     } catch (err: any) {
-      alert("Erro ao salvar treino: " + err.message);
+      showToast("Erro ao salvar treino: " + err.message, 'error');
     } finally {
       setIsSaving(false);
     }

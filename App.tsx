@@ -11,11 +11,14 @@ import MessagesScreen from './components/MessagesScreen';
 import NotificationsScreen from './components/NotificationsScreen';
 import RecipesScreen from './components/RecipesScreen';
 import AuthScreen from './components/AuthScreen';
-import { ToastProvider } from './components/Toast';
+import { useToast } from './components/Toast';
+import PostSkeleton from './components/PostSkeleton';
 import { Plus, Bell, Search, Home, Timer, User, Camera, Ruler, MessageSquare, Dumbbell, Apple, MessageCircle, ChefHat, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
 const App: React.FC = () => {
+  const { showToast } = useToast();
+
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [session, setSession] = useState<any>(null);
@@ -470,7 +473,7 @@ const App: React.FC = () => {
     const { error } = await supabase.from('posts').delete().eq('id', postId);
 
     if (error) {
-      alert('Erro ao excluir post.');
+      showToast('Erro ao excluir post.', 'error');
       setMyPostList(prevMy);
       setCommunityPostList(prevComm);
     }
@@ -558,7 +561,7 @@ const App: React.FC = () => {
 
     } catch (error: any) {
       console.error("Error saving post:", error);
-      alert("Erro ao salvar post. Verifique se o Bucket 'posts' existe e está público.");
+      showToast("Erro ao salvar post. Verifique se o Bucket 'posts' existe e está público.", 'error');
     }
   };
 
@@ -715,9 +718,9 @@ const App: React.FC = () => {
       {/* Feed List */}
       <main className="flex-1 pb-24 bg-slate-50 min-h-[500px]">
         {isLoadingPosts ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 size={40} className="text-cyan-500 animate-spin mb-4" />
-            <p className="text-slate-400 font-medium">Buscando no Supabase...</p>
+          <div className="pt-4 px-3 space-y-4">
+            {[1, 2, 3].map(i => <PostSkeleton key={i} />)}
+            <p className="text-center text-slate-400 text-xs font-medium pb-4">Carregando feed...</p>
           </div>
         ) : (
           <div className="pt-4">
@@ -810,104 +813,102 @@ const App: React.FC = () => {
   );
 
   return (
-    <ToastProvider>
-      <div className="min-h-screen bg-slate-50 flex justify-center">
-        <div className="w-full max-w-md bg-white min-h-screen relative shadow-2xl flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex justify-center">
+      <div className="w-full max-w-md bg-white min-h-screen relative shadow-2xl flex flex-col">
 
-          {/* Main Content Switcher */}
-          {currentView === 'home' && renderHomeContent()}
-          {currentView === 'nutrition' && <NutritionScreen />}
-          {currentView === 'stopwatch' && <StopwatchScreen />}
-          {currentView === 'profile' && <ProfileScreen onLogout={handleLogout} onUpdate={handleProfileUpdate} />}
-          {currentView === 'search' && (
-            <SearchScreen
-              targetUsername={targetProfileUser}
-              onBack={handleBackFromSearch}
-              onMessageClick={(userId) => {
-                setTargetMessageUser(userId);
-                setCurrentView('messages');
-              }}
-            />
-          )}
-          {currentView === 'messages' && (
-            <MessagesScreen
-              onBack={() => {
-                setCurrentView('home');
-                setTargetMessageUser(null);
-                if (session?.user?.id) fetchUnreadMessagesCount(session.user.id);
-              }}
-              targetUserId={targetMessageUser}
-            />
-          )}
-          {currentView === 'notifications' && (
-            <NotificationsScreen
-              onBack={() => setCurrentView('home')}
-              onUserClick={(username) => {
-                setTargetProfileUser(username);
-                setCurrentView('search');
-              }}
-              onNotificationClick={(notif) => {
-                if (notif.type === 'message') {
-                  setTargetMessageUser(notif.actor_id);
-                  setCurrentView('messages');
-                } else {
-                  setTargetProfileUser(notif.actor?.username);
-                  setCurrentView('search');
-                }
-              }}
-            />
-          )}
-          {currentView === 'recipes' && <RecipesScreen />}
-
-          {/* Bottom Navigation */}
-          <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-slate-100 px-5 py-4 flex justify-between items-center z-30">
-            <button
-              onClick={() => { setCurrentView('home'); setTargetProfileUser(null); }}
-              className={`${currentView === 'home' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
-            >
-              <Home size={24} strokeWidth={currentView === 'home' ? 3 : 2.5} />
-              {currentView === 'home' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
-            </button>
-
-            <button
-              onClick={() => { setCurrentView('nutrition'); setTargetProfileUser(null); }}
-              className={`${currentView === 'nutrition' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
-            >
-              <Apple size={24} strokeWidth={currentView === 'nutrition' ? 3 : 2.5} />
-              {currentView === 'nutrition' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
-            </button>
-
-            <div className="w-8"></div> {/* Spacer for FAB */}
-
-            <button
-              onClick={() => { setCurrentView('recipes'); setTargetProfileUser(null); }}
-              className={`${currentView === 'recipes' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
-            >
-              <ChefHat size={24} strokeWidth={currentView === 'recipes' ? 3 : 2.5} />
-              {currentView === 'recipes' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
-            </button>
-
-            <button
-              onClick={() => { setCurrentView('stopwatch'); setTargetProfileUser(null); }}
-              className={`${currentView === 'stopwatch' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
-            >
-              <Timer size={24} strokeWidth={currentView === 'stopwatch' ? 3 : 2.5} />
-              {currentView === 'stopwatch' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
-            </button>
-
-          </div>
-
-          {/* Modal */}
-          <NewPostModal
-            isOpen={isModalOpen}
-            onClose={handleCloseModal}
-            onSave={handleSavePost}
-            postType={selectedPostType}
-            initialData={editingPost}
+        {/* Main Content Switcher */}
+        {currentView === 'home' && renderHomeContent()}
+        {currentView === 'nutrition' && <NutritionScreen />}
+        {currentView === 'stopwatch' && <StopwatchScreen />}
+        {currentView === 'profile' && <ProfileScreen onLogout={handleLogout} onUpdate={handleProfileUpdate} />}
+        {currentView === 'search' && (
+          <SearchScreen
+            targetUsername={targetProfileUser}
+            onBack={handleBackFromSearch}
+            onMessageClick={(userId) => {
+              setTargetMessageUser(userId);
+              setCurrentView('messages');
+            }}
           />
+        )}
+        {currentView === 'messages' && (
+          <MessagesScreen
+            onBack={() => {
+              setCurrentView('home');
+              setTargetMessageUser(null);
+              if (session?.user?.id) fetchUnreadMessagesCount(session.user.id);
+            }}
+            targetUserId={targetMessageUser}
+          />
+        )}
+        {currentView === 'notifications' && (
+          <NotificationsScreen
+            onBack={() => setCurrentView('home')}
+            onUserClick={(username) => {
+              setTargetProfileUser(username);
+              setCurrentView('search');
+            }}
+            onNotificationClick={(notif) => {
+              if (notif.type === 'message') {
+                setTargetMessageUser(notif.actor_id);
+                setCurrentView('messages');
+              } else {
+                setTargetProfileUser(notif.actor?.username);
+                setCurrentView('search');
+              }
+            }}
+          />
+        )}
+        {currentView === 'recipes' && <RecipesScreen />}
+
+        {/* Bottom Navigation */}
+        <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-slate-100 px-5 py-4 flex justify-between items-center z-30">
+          <button
+            onClick={() => { setCurrentView('home'); setTargetProfileUser(null); }}
+            className={`${currentView === 'home' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
+          >
+            <Home size={24} strokeWidth={currentView === 'home' ? 3 : 2.5} />
+            {currentView === 'home' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
+          </button>
+
+          <button
+            onClick={() => { setCurrentView('nutrition'); setTargetProfileUser(null); }}
+            className={`${currentView === 'nutrition' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
+          >
+            <Apple size={24} strokeWidth={currentView === 'nutrition' ? 3 : 2.5} />
+            {currentView === 'nutrition' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
+          </button>
+
+          <div className="w-8"></div> {/* Spacer for FAB */}
+
+          <button
+            onClick={() => { setCurrentView('recipes'); setTargetProfileUser(null); }}
+            className={`${currentView === 'recipes' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
+          >
+            <ChefHat size={24} strokeWidth={currentView === 'recipes' ? 3 : 2.5} />
+            {currentView === 'recipes' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
+          </button>
+
+          <button
+            onClick={() => { setCurrentView('stopwatch'); setTargetProfileUser(null); }}
+            className={`${currentView === 'stopwatch' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
+          >
+            <Timer size={24} strokeWidth={currentView === 'stopwatch' ? 3 : 2.5} />
+            {currentView === 'stopwatch' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
+          </button>
+
         </div>
+
+        {/* Modal */}
+        <NewPostModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onSave={handleSavePost}
+          postType={selectedPostType}
+          initialData={editingPost}
+        />
       </div>
-    </ToastProvider>
+    </div>
   );
 };
 

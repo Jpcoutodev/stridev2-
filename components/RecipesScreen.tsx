@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { ChefHat, Plus, X, Sparkles, Flame, Clock, ArrowRight, ShoppingBag, Loader2, Mic, MicOff } from 'lucide-react';
 import { generateRecipeAI } from '../lib/openai';
+import { useToast } from './Toast';
 
 const RecipesScreen: React.FC = () => {
+    const { showToast } = useToast();
     const [ingredients, setIngredients] = useState<string[]>([]);
     const [currentInput, setCurrentInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +22,7 @@ const RecipesScreen: React.FC = () => {
 
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            alert("Seu navegador não suporta entrada de voz.");
+            showToast("Seu navegador não suporta entrada de voz.", 'warning');
             return;
         }
 
@@ -80,7 +82,7 @@ const RecipesScreen: React.FC = () => {
 
         } catch (error: any) {
             console.error("Erro ao gerar receita:", error);
-            alert(`Erro no Chef IA: ${error.message || JSON.stringify(error)}`);
+            showToast(`Erro no Chef IA: ${error.message || JSON.stringify(error)}`, 'error');
         } finally {
             setIsLoading(false);
         }

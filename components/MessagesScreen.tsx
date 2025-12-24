@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Search, Send, MoreVertical, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { useToast } from './Toast';
 
 interface Message {
   id: string;
@@ -32,6 +33,7 @@ interface MessagesScreenProps {
 }
 
 const MessagesScreen: React.FC<MessagesScreenProps> = ({ onBack, targetUserId }) => {
+  const { showToast } = useToast();
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -301,7 +303,7 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ onBack, targetUserId })
       if (currentUserId) fetchConversations(currentUserId);
     } catch (err) {
       console.error("Error deleting conversation:", err);
-      alert("Erro ao apagar conversa.");
+      showToast("Erro ao apagar conversa.", 'error');
     }
   };
 
