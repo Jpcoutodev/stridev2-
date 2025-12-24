@@ -496,10 +496,13 @@ const App: React.FC = () => {
         const fileName = `${Date.now()}.${fileExt}`;
         const filePath = `${user.id}/${fileName}`;
 
-        // Upload to 'posts' bucket
+        // Upload to 'posts' bucket with CDN cache headers
         const { error: uploadError } = await supabase.storage
           .from('posts')
-          .upload(filePath, imageFile);
+          .upload(filePath, imageFile, {
+            cacheControl: '31536000', // 1 year cache for CDN
+            contentType: imageFile.type || 'image/jpeg'
+          });
 
         if (uploadError) {
           console.error("Upload error details:", uploadError);

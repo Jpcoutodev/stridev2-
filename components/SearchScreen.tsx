@@ -3,6 +3,7 @@ import { Search, UserPlus, UserCheck, ChevronLeft, MapPin, Grid, Users, ArrowLef
 import { PostModel } from '../types';
 import PostCard from './PostCard';
 import { supabase } from '../supabaseClient';
+import { queryCache, CacheKeys } from '../lib/queryCache';
 
 interface UserProfile {
     id: string;
@@ -99,17 +100,22 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack, onM
     }, [searchTerm]);
 
     const fetchUserCounts = async (userId: string) => {
-        const [postsCount, followersCount, followingCount] = await Promise.all([
-            supabase.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-            supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId).eq('status', 'accepted'),
-            supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId).eq('status', 'accepted')
-        ]);
+        // Check cache first
+        const cacheKey = CacheKeys.userStats(userId);
+        const cached = queryCache.get<{ posts: number; followers: number; following: number }>(cacheKey);
+        if (cached) return cached;
 
-        return {
-            posts: postsCount.count || 0,
-            followers: followersCount.count || 0,
-            following: followingCount.count || 0
+        // Fetch from API
+        const { data: stats } = await supabase.rpc('get_user_stats', { user_id_param: userId });
+        const result = {
+            posts: stats?.posts || 0,
+            followers: stats?.followers || 0,
+            following: stats?.following || 0
         };
+
+        // Cache result for 1 minute
+        queryCache.set(cacheKey, result, 60000);
+        return result;
     };
 
     const fetchUserPosts = async (userId: string) => {

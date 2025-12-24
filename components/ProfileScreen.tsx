@@ -55,12 +55,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
                 throw error;
             }
 
-            // 2. Fetch Dynamic Counts
-            const [postsCount, followersCount, followingCount] = await Promise.all([
-                supabase.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id),
-                supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', session.user.id).eq('status', 'accepted'),
-                supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', session.user.id).eq('status', 'accepted')
-            ]);
+            // 2. Fetch Dynamic Counts using RPC (single query)
+            const { data: stats } = await supabase.rpc('get_user_stats', { user_id_param: session.user.id });
 
             if (data) {
                 setInitialUsername(data.username || '');
@@ -74,9 +70,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
                     full_name: data.full_name || '',
                     username: data.username || '',
                     avatar_url: data.avatar_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop',
-                    posts: postsCount.count || 0,
-                    followers: followersCount.count || 0,
-                    following: followingCount.count || 0
+                    posts: stats?.posts || 0,
+                    followers: stats?.followers || 0,
+                    following: stats?.following || 0
                 });
             }
         } catch (error: any) {
@@ -163,7 +159,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
 
                 const { error: uploadError } = await supabase.storage
                     .from('avatars')
-                    .upload(filePath, selectedImageFile);
+                    .upload(filePath, selectedImageFile, {
+                        cacheControl: '86400', // 24 hour cache for avatars
+                        contentType: selectedImageFile.type || 'image/jpeg',
+                        upsert: true // Allow overwriting avatar
+                    });
 
                 if (uploadError) {
                     throw new Error(`Erro no upload da imagem: ${uploadError.message}`);
