@@ -10,13 +10,15 @@ interface Challenge {
     title: string;
     description: string | null;
     frequency: 'daily' | 'weekly' | 'monthly';
+    times_per_period: number;
     target_count: number;
     current_count: number;
     status: 'active' | 'completed' | 'abandoned';
     started_at: string;
     completed_at: string | null;
     created_at: string;
-    todayCheckedIn?: boolean;
+    periodCheckIns?: number; // Check-ins feitos neste período (dia/semana/mês)
+    canCheckIn?: boolean;
 }
 
 interface ChallengesScreenProps {
@@ -49,19 +51,38 @@ const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) => {
 
             if (error) throw error;
 
-            // Verificar check-ins de hoje
-            const today = new Date().toISOString().split('T')[0];
-            const { data: todayCheckins } = await supabase
-                .from('challenge_checkins')
-                .select('challenge_id')
-                .eq('user_id', session.user.id)
-                .eq('checked_date', today);
+            // Calcular período atual para cada desafio
+            const now = new Date();
+            const mapped = await Promise.all((challengesData || []).map(async (c: any) => {
+                // Determinar início do período
+                let periodStart: Date;
+                if (c.frequency === 'daily') {
+                    periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                } else if (c.frequency === 'weekly') {
+                    const dayOfWeek = now.getDay();
+                    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Segunda = início
+                    periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff);
+                } else {
+                    periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                }
 
-            const checkedChallengeIds = new Set(todayCheckins?.map(c => c.challenge_id) || []);
+                // Contar check-ins do período
+                const { count } = await supabase
+                    .from('challenge_checkins')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('challenge_id', c.id)
+                    .eq('user_id', session.user.id)
+                    .gte('checked_at', periodStart.toISOString());
 
-            const mapped = (challengesData || []).map(c => ({
-                ...c,
-                todayCheckedIn: checkedChallengeIds.has(c.id)
+                const periodCheckIns = count || 0;
+                const timesPerPeriod = c.times_per_period || 1;
+                const canCheckIn = periodCheckIns < timesPerPeriod;
+
+                return {
+                    ...c,
+                    periodCheckIns,
+                    canCheckIn
+                };
             }));
 
             setChallenges(mapped);
@@ -74,7 +95,7 @@ const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) => {
     };
 
     const handleCheckIn = async (challenge: Challenge) => {
-        if (challenge.todayCheckedIn || challenge.status !== 'active') return;
+        if (!challenge.canCheckIn || challenge.status !== 'active') return;
 
         setCheckingInId(challenge.id);
 
@@ -89,53 +110,59 @@ const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) => {
                 .from('challenge_checkins')
                 .insert({
                     challenge_id: challenge.id,
-                    user_id: session.user.id,
-                    checked_date: today
+                    user_id: session.user.id
                 });
 
-            if (checkinError) throw checkinError;
+            // 2. Verificar se completou todos os check-ins do período
+            const newPeriodCheckIns = (challenge.periodCheckIns || 0) + 1;
+            const timesPerPeriod = challenge.times_per_period || 1;
 
-            // 2. Atualizar contagem
-            const newCount = challenge.current_count + 1;
-            const isCompleted = newCount >= challenge.target_count;
+            // Se completou todos check-ins deste período, incrementar current_count
+            if (newPeriodCheckIns >= timesPerPeriod) {
+                const newCount = challenge.current_count + 1;
+                const isCompleted = newCount >= challenge.target_count;
 
-            const updateData: any = {
-                current_count: newCount,
-                updated_at: new Date().toISOString()
-            };
+                const updateData: any = {
+                    current_count: newCount,
+                    updated_at: new Date().toISOString()
+                };
 
-            if (isCompleted) {
-                updateData.status = 'completed';
-                updateData.completed_at = new Date().toISOString();
-            }
+                if (isCompleted) {
+                    updateData.status = 'completed';
+                    updateData.completed_at = new Date().toISOString();
+                }
 
-            const { error: updateError } = await supabase
-                .from('challenges')
-                .update(updateData)
-                .eq('id', challenge.id);
+                const { error: updateError } = await supabase
+                    .from('challenges')
+                    .update(updateData)
+                    .eq('id', challenge.id);
 
-            if (updateError) throw updateError;
+                if (updateError) throw updateError;
 
-            // 3. Se completou, criar post de conclusão
-            if (isCompleted) {
-                const frequencyLabel = {
-                    daily: 'dias',
-                    weekly: 'semanas',
-                    monthly: 'meses'
-                }[challenge.frequency];
+                // 3. Se completou, criar post de conclusão
+                if (isCompleted) {
+                    const frequencyLabel = {
+                        daily: 'dias',
+                        weekly: 'semanas',
+                        monthly: 'meses'
+                    }[challenge.frequency];
 
-                await supabase
-                    .from('posts')
-                    .insert({
-                        user_id: session.user.id,
-                        type: 'challenge',
-                        caption: `🏆 Desafio Concluído! 🎉\n\n"${challenge.title}"\n\n✅ Meta alcançada: ${challenge.target_count} ${frequencyLabel}\n🔥 Missão cumprida!\n\nNunca duvide da sua capacidade! 💪`,
-                        challenge_id: challenge.id
-                    });
+                    await supabase
+                        .from('posts')
+                        .insert({
+                            user_id: session.user.id,
+                            type: 'challenge',
+                            caption: `🏆 Desafio Concluído! 🎉\n\n"${challenge.title}"\n\n✅ Meta alcançada: ${challenge.target_count} ${frequencyLabel}\n🔥 Missão cumprida!\n\nNunca duvide da sua capacidade! 💪`,
+                            challenge_id: challenge.id
+                        });
 
-                showToast('🏆 Parabéns! Desafio concluído!', 'success');
+                    showToast('🏆 Parabéns! Desafio concluído!', 'success');
+                } else {
+                    showToast(`🎉 Período completo! ${newCount}/${challenge.target_count}`, 'success');
+                }
             } else {
-                showToast(`Check-in realizado! ${newCount}/${challenge.target_count}`, 'success');
+                // Ainda faltam check-ins neste período
+                showToast(`Check-in! ${newPeriodCheckIns}/${timesPerPeriod} neste período`, 'success');
             }
 
             fetchChallenges();
@@ -256,27 +283,34 @@ const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) => {
 
                                                 {/* Stats Row */}
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-sm font-semibold text-slate-600">
-                                                        {challenge.current_count}/{challenge.target_count} {getFrequencyLabel(challenge.frequency)}
-                                                    </span>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-semibold text-slate-600">
+                                                            {challenge.current_count}/{challenge.target_count} {getFrequencyLabel(challenge.frequency)}
+                                                        </span>
+                                                        {challenge.times_per_period > 1 && (
+                                                            <span className="text-xs text-orange-500 font-medium">
+                                                                {challenge.periodCheckIns || 0}/{challenge.times_per_period} check-ins esta {challenge.frequency === 'weekly' ? 'semana' : 'mês'}
+                                                            </span>
+                                                        )}
+                                                    </div>
 
                                                     {/* Check-in Button */}
                                                     <button
                                                         onClick={() => handleCheckIn(challenge)}
-                                                        disabled={challenge.todayCheckedIn || checkingInId === challenge.id}
-                                                        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${challenge.todayCheckedIn
-                                                                ? 'bg-green-100 text-green-600 cursor-default'
-                                                                : 'bg-orange-500 hover:bg-orange-600 text-white active:scale-95'
+                                                        disabled={!challenge.canCheckIn || checkingInId === challenge.id}
+                                                        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${!challenge.canCheckIn
+                                                            ? 'bg-green-100 text-green-600 cursor-default'
+                                                            : 'bg-orange-500 hover:bg-orange-600 text-white active:scale-95'
                                                             } ${checkingInId === challenge.id ? 'opacity-70' : ''}`}
                                                     >
                                                         {checkingInId === challenge.id ? (
                                                             <Loader2 size={16} className="animate-spin" />
-                                                        ) : challenge.todayCheckedIn ? (
+                                                        ) : !challenge.canCheckIn ? (
                                                             <CheckCircle2 size={16} />
                                                         ) : (
                                                             <Circle size={16} />
                                                         )}
-                                                        {challenge.todayCheckedIn ? 'Feito hoje!' : 'Check-in'}
+                                                        {!challenge.canCheckIn ? 'Completo!' : 'Check-in'}
                                                     </button>
                                                 </div>
                                             </div>

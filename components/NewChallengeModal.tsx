@@ -10,9 +10,9 @@ interface NewChallengeModalProps {
 }
 
 const FREQUENCY_OPTIONS = [
-    { value: 'daily', label: 'Diária', icon: Zap, color: 'text-orange-500', bg: 'bg-orange-100', description: 'Todos os dias' },
-    { value: 'weekly', label: 'Semanal', icon: Calendar, color: 'text-blue-500', bg: 'bg-blue-100', description: 'Uma vez por semana' },
-    { value: 'monthly', label: 'Mensal', icon: Clock, color: 'text-purple-500', bg: 'bg-purple-100', description: 'Uma vez por mês' },
+    { value: 'daily', label: 'Diária', icon: Zap, color: 'text-orange-500', bg: 'bg-orange-100', description: 'Todo dia', periodLabel: 'por dia' },
+    { value: 'weekly', label: 'Semanal', icon: Calendar, color: 'text-blue-500', bg: 'bg-blue-100', description: 'Por semana', periodLabel: 'por semana' },
+    { value: 'monthly', label: 'Mensal', icon: Clock, color: 'text-purple-500', bg: 'bg-purple-100', description: 'Por mês', periodLabel: 'por mês' },
 ];
 
 const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, onSave }) => {
@@ -20,8 +20,9 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
     const [isLoading, setIsLoading] = useState(false);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-    const [targetCount, setTargetCount] = useState(7);
+    const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+    const [timesPerPeriod, setTimesPerPeriod] = useState(4);
+    const [targetCount, setTargetCount] = useState(4);
 
     if (!isOpen) return null;
 
@@ -50,6 +51,7 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
                     title: title.trim(),
                     description: description.trim() || null,
                     frequency,
+                    times_per_period: frequency === 'daily' ? 1 : timesPerPeriod,
                     target_count: targetCount,
                     status: 'active'
                 })
@@ -65,12 +67,16 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
                 monthly: 'meses'
             }[frequency];
 
+            const timesLabel = frequency === 'daily'
+                ? `todos os dias por ${targetCount} dias`
+                : `${timesPerPeriod}x ${FREQUENCY_OPTIONS.find(o => o.value === frequency)?.periodLabel} por ${targetCount} ${frequencyLabel}`;
+
             const { error: postError } = await supabase
                 .from('posts')
                 .insert({
                     user_id: session.user.id,
                     type: 'challenge',
-                    caption: `🚀 Novo Desafio! "${title}"\n\n🎯 Meta: ${targetCount} ${frequencyLabel}\n📈 Status: Em andamento\n\nBora lá! 💪`,
+                    caption: `🚀 Novo Desafio! "${title}"\n\n🎯 Meta: ${timesLabel}\n📈 Status: Em andamento\n\nBora lá! 💪`,
                     challenge_id: challenge.id
                 });
 
@@ -84,8 +90,9 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
             // Reset form
             setTitle('');
             setDescription('');
-            setFrequency('daily');
-            setTargetCount(7);
+            setFrequency('weekly');
+            setTimesPerPeriod(4);
+            setTargetCount(4);
 
             onSave();
             onClose();
@@ -103,6 +110,10 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
             case 'weekly': return 'semanas';
             case 'monthly': return 'meses';
         }
+    };
+
+    const getPeriodLabel = () => {
+        return FREQUENCY_OPTIONS.find(o => o.value === frequency)?.periodLabel || '';
     };
 
     return (
@@ -171,8 +182,8 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
                                     key={opt.value}
                                     onClick={() => setFrequency(opt.value as 'daily' | 'weekly' | 'monthly')}
                                     className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${frequency === opt.value
-                                            ? `border-orange-500 bg-orange-50`
-                                            : 'border-slate-200 bg-white hover:border-slate-300'
+                                        ? `border-orange-500 bg-orange-50`
+                                        : 'border-slate-200 bg-white hover:border-slate-300'
                                         }`}
                                 >
                                     <div className={`p-2 rounded-full ${opt.bg}`}>
@@ -185,6 +196,44 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
                             ))}
                         </div>
                     </div>
+
+                    {/* Vezes por Período (Only for weekly/monthly) */}
+                    {frequency !== 'daily' && (
+                        <div className="space-y-3">
+                            <label className="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                                <Zap size={16} className="text-orange-500" />
+                                Quantas vezes {getPeriodLabel()}?
+                            </label>
+                            <div className="flex items-center gap-4">
+                                <div className="flex-1 flex items-center gap-2">
+                                    <button
+                                        onClick={() => setTimesPerPeriod(Math.max(1, timesPerPeriod - 1))}
+                                        className="w-12 h-12 bg-orange-100 hover:bg-orange-200 rounded-xl text-orange-600 font-bold text-xl transition-colors"
+                                    >
+                                        -
+                                    </button>
+                                    <input
+                                        type="number"
+                                        value={timesPerPeriod}
+                                        onChange={(e) => setTimesPerPeriod(Math.max(1, parseInt(e.target.value) || 1))}
+                                        min={1}
+                                        max={frequency === 'weekly' ? 7 : 30}
+                                        className="flex-1 text-center text-3xl font-bold text-orange-600 bg-orange-50 border border-orange-200 rounded-xl py-2 focus:outline-none focus:border-orange-500"
+                                    />
+                                    <button
+                                        onClick={() => setTimesPerPeriod(Math.min(frequency === 'weekly' ? 7 : 30, timesPerPeriod + 1))}
+                                        className="w-12 h-12 bg-orange-100 hover:bg-orange-200 rounded-xl text-orange-600 font-bold text-xl transition-colors"
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                                <span className="text-lg text-orange-500 font-bold min-w-[100px]">x {getPeriodLabel()}</span>
+                            </div>
+                            <p className="text-xs text-slate-500">
+                                Ex: Musculação <span className="font-bold text-orange-600">{timesPerPeriod}x</span> {getPeriodLabel()}
+                            </p>
+                        </div>
+                    )}
 
                     {/* Meta */}
                     <div className="space-y-3">
@@ -223,7 +272,9 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
                         <p className="text-xs font-bold text-orange-600 uppercase mb-2">Preview do desafio</p>
                         <p className="text-slate-700 font-semibold">{title || 'Seu desafio aqui'}</p>
                         <p className="text-sm text-slate-500 mt-1">
-                            🎯 {targetCount} {getTargetLabel()} • {FREQUENCY_OPTIONS.find(o => o.value === frequency)?.description}
+                            🎯 {frequency === 'daily'
+                                ? `Todo dia por ${targetCount} dias`
+                                : `${timesPerPeriod}x ${getPeriodLabel()} por ${targetCount} ${getTargetLabel()}`}
                         </p>
                     </div>
 
