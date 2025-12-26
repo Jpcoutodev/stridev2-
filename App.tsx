@@ -160,8 +160,8 @@ const App: React.FC = () => {
 
     if (data) {
       setUserProfile(data);
-      // Verificar se precisa mostrar onboarding
-      if (data.onboarding_completed === false) {
+      // Verificar se precisa mostrar onboarding (false, null ou undefined)
+      if (!data.onboarding_completed) {
         setShowOnboarding(true);
       }
     }
