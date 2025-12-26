@@ -18,11 +18,41 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onOpenLegal }) => {
     // Form States
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [name, setName] = useState('');
     const [dob, setDob] = useState('');
     const [city, setCity] = useState('');
     const [handle, setHandle] = useState('');
     const [termsAccepted, setTermsAccepted] = useState(false);
+
+    // Formatar data de nascimento no formato DD/MM/AAAA
+    const formatDobInput = (value: string) => {
+        // Remove tudo que não é número
+        const numbers = value.replace(/\D/g, '');
+
+        // Aplica a máscara DD/MM/AAAA
+        if (numbers.length <= 2) {
+            return numbers;
+        } else if (numbers.length <= 4) {
+            return `${numbers.slice(0, 2)}/${numbers.slice(2)}`;
+        } else {
+            return `${numbers.slice(0, 2)}/${numbers.slice(2, 4)}/${numbers.slice(4, 8)}`;
+        }
+    };
+
+    // Converter DD/MM/AAAA para AAAA-MM-DD (formato do banco)
+    const convertDobToIso = (dobFormatted: string): string | null => {
+        const parts = dobFormatted.split('/');
+        if (parts.length === 3 && parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        return null;
+    };
+
+    const handleDobChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const formatted = formatDobInput(e.target.value);
+        setDob(formatted);
+    };
 
     const handleRecovery = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -58,7 +88,21 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onOpenLegal }) => {
                 if (error) throw error;
                 // Successful login is detected by App.tsx via onAuthStateChange
             } else {
-                // Registration
+                // Registration - validar confirmação de senha
+                if (password !== confirmPassword) {
+                    setErrorMessage('As senhas não coincidem.');
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Validar formato da data
+                const dobIso = convertDobToIso(dob);
+                if (!dobIso) {
+                    setErrorMessage('Data de nascimento inválida. Use o formato DD/MM/AAAA.');
+                    setIsLoading(false);
+                    return;
+                }
+
                 const { data, error } = await supabase.auth.signUp({
                     email,
                     password,
@@ -68,7 +112,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onOpenLegal }) => {
                             name,
                             handle,
                             city,
-                            dob
+                            dob: dobIso
                         }
                     }
                 });
@@ -81,7 +125,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onOpenLegal }) => {
                         full_name: name,
                         username: handle,
                         location: city,
-                        birth_date: dob || null,
+                        birth_date: dobIso || null,
                         avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200'
                     });
                     if (profileError) {
@@ -224,10 +268,13 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onOpenLegal }) => {
                                         </div>
                                         <input
                                             required
-                                            type="date"
+                                            type="text"
+                                            inputMode="numeric"
+                                            placeholder="DD/MM/AAAA"
                                             value={dob}
-                                            onChange={(e) => setDob(e.target.value)}
-                                            className="w-full bg-slate-50 border border-slate-200 text-slate-500 rounded-xl py-3.5 pl-10 pr-2 outline-none focus:bg-white focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 transition-all font-medium text-sm"
+                                            onChange={handleDobChange}
+                                            maxLength={10}
+                                            className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl py-3.5 pl-10 pr-2 outline-none focus:bg-white focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 transition-all font-medium text-sm"
                                         />
                                     </div>
                                     <div className="relative group flex-1">
@@ -302,6 +349,23 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onOpenLegal }) => {
                                         className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl py-3.5 pl-11 pr-4 outline-none focus:bg-white focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 transition-all font-medium"
                                     />
                                 </div>
+
+                                {/* Confirm Password (Signup Only) */}
+                                {!isLoginMode && (
+                                    <div className="relative group animate-in slide-in-from-right duration-300">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <Lock className="text-slate-400 group-focus-within:text-cyan-500 transition-colors" size={20} />
+                                        </div>
+                                        <input
+                                            required
+                                            type="password"
+                                            placeholder="Repita a senha"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl py-3.5 pl-11 pr-4 outline-none focus:bg-white focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 transition-all font-medium"
+                                        />
+                                    </div>
+                                )}
                             </div>
                         )}
 

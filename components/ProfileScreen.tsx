@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, User, Lock, Globe, Save, Ruler, Weight, MapPin, Loader2, LogOut, AtSign, AlertCircle } from 'lucide-react';
+import { Camera, User, Lock, Globe, Save, Ruler, Weight, MapPin, Loader2, LogOut, AtSign, AlertCircle, Target } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { compressImage, convertHeicToJpeg } from '../lib/imageUtils';
 import { useToast } from './Toast';
@@ -27,6 +27,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
         email: '',
         weight: '' as string | number,
         height: '' as string | number,
+        goal: '',
         is_private: false,
         avatar_url: '',
         followers: 0,
@@ -67,6 +68,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
                     email: session.user.email || '',
                     weight: data.weight || '',
                     height: data.height || '',
+                    goal: data.goal || '',
                     bio: data.bio || '',
                     location: data.location || '',
                     full_name: data.full_name || '',
@@ -187,6 +189,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
                 location: profile.location,
                 weight: parseNumber(profile.weight),
                 height: parseNumber(profile.height),
+                goal: profile.goal,
                 is_private: profile.is_private,
                 avatar_url: finalAvatarUrl,
                 updated_at: new Date(),
@@ -376,6 +379,30 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
                             </div>
                             <div className="bg-cyan-100 p-2 rounded-full text-cyan-600">
                                 <Ruler size={20} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Section: Fitness Goal */}
+                <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <Target size={16} className="text-orange-500" /> Objetivo Fitness
+                    </h3>
+                    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-orange-100 p-2.5 rounded-full text-orange-600 shrink-0">
+                                <Target size={20} />
+                            </div>
+                            <div className="flex-1">
+                                <span className="text-xs text-slate-400 font-bold uppercase block mb-1">Minha Meta</span>
+                                <input
+                                    type="text"
+                                    value={profile.goal}
+                                    onChange={(e) => handleChange('goal', e.target.value)}
+                                    className="w-full bg-transparent font-semibold text-slate-800 focus:outline-none focus:border-b-2 focus:border-orange-400 pb-1"
+                                    placeholder="Ex: Ganhar 10kg de massa, Perder 20kg..."
+                                />
                             </div>
                         </div>
                     </div>
