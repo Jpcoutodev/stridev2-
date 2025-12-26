@@ -119,7 +119,7 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto no-scrollbar">
 
                 {/* Header */}
@@ -206,11 +206,11 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
                                 <Zap size={16} className="text-orange-500" />
                                 Quantas vezes {getPeriodLabel()}?
                             </label>
-                            <div className="flex items-center gap-4">
-                                <div className="flex-1 flex items-center gap-2">
+                            <div className="flex items-center gap-2">
+                                <div className="flex-1 flex items-center gap-1.5">
                                     <button
                                         onClick={() => setTimesPerPeriod(Math.max(1, timesPerPeriod - 1))}
-                                        className="w-12 h-12 bg-orange-100 hover:bg-orange-200 rounded-xl text-orange-600 font-bold text-xl transition-colors"
+                                        className="w-10 h-10 bg-orange-100 hover:bg-orange-200 rounded-xl text-orange-600 font-bold text-lg transition-colors flex-shrink-0"
                                     >
                                         -
                                     </button>
@@ -220,16 +220,16 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
                                         onChange={(e) => setTimesPerPeriod(Math.max(1, parseInt(e.target.value) || 1))}
                                         min={1}
                                         max={frequency === 'weekly' ? 7 : 30}
-                                        className="flex-1 text-center text-3xl font-bold text-orange-600 bg-orange-50 border border-orange-200 rounded-xl py-2 focus:outline-none focus:border-orange-500"
+                                        className="w-16 text-center text-2xl font-bold text-orange-600 bg-orange-50 border border-orange-200 rounded-xl py-2 focus:outline-none focus:border-orange-500"
                                     />
                                     <button
                                         onClick={() => setTimesPerPeriod(Math.min(frequency === 'weekly' ? 7 : 30, timesPerPeriod + 1))}
-                                        className="w-12 h-12 bg-orange-100 hover:bg-orange-200 rounded-xl text-orange-600 font-bold text-xl transition-colors"
+                                        className="w-10 h-10 bg-orange-100 hover:bg-orange-200 rounded-xl text-orange-600 font-bold text-lg transition-colors flex-shrink-0"
                                     >
                                         +
                                     </button>
                                 </div>
-                                <span className="text-lg text-orange-500 font-bold min-w-[100px]">x {getPeriodLabel()}</span>
+                                <span className="text-sm text-orange-500 font-bold">x {getPeriodLabel()}</span>
                             </div>
                             <p className="text-xs text-slate-500">
                                 Ex: Musculação <span className="font-bold text-orange-600">{timesPerPeriod}x</span> {getPeriodLabel()}
@@ -243,11 +243,11 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
                             <Hash size={16} className="text-lime-500" />
                             Meta: Quantos {getTargetLabel()}?
                         </label>
-                        <div className="flex items-center gap-4">
-                            <div className="flex-1 flex items-center gap-2">
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 flex items-center gap-1.5">
                                 <button
                                     onClick={() => setTargetCount(Math.max(1, targetCount - 1))}
-                                    className="w-12 h-12 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-600 font-bold text-xl transition-colors"
+                                    className="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-600 font-bold text-lg transition-colors flex-shrink-0"
                                 >
                                     -
                                 </button>
@@ -256,16 +256,16 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
                                     value={targetCount}
                                     onChange={(e) => setTargetCount(Math.max(1, parseInt(e.target.value) || 1))}
                                     min={1}
-                                    className="flex-1 text-center text-3xl font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl py-2 focus:outline-none focus:border-orange-500"
+                                    className="w-16 text-center text-2xl font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl py-2 focus:outline-none focus:border-orange-500"
                                 />
                                 <button
                                     onClick={() => setTargetCount(targetCount + 1)}
-                                    className="w-12 h-12 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-600 font-bold text-xl transition-colors"
+                                    className="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-600 font-bold text-lg transition-colors flex-shrink-0"
                                 >
                                     +
                                 </button>
                             </div>
-                            <span className="text-lg text-slate-500 font-medium min-w-[80px]">{getTargetLabel()}</span>
+                            <span className="text-sm text-slate-500 font-medium">{getTargetLabel()}</span>
                         </div>
                     </div>
 
