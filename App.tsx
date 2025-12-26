@@ -12,9 +12,11 @@ import NotificationsScreen from './components/NotificationsScreen';
 import RecipesScreen from './components/RecipesScreen';
 import AuthScreen from './components/AuthScreen';
 import LegalScreen from './components/LegalScreen';
+import ChallengesScreen from './components/ChallengesScreen';
+import NewChallengeModal from './components/NewChallengeModal';
 import { useToast } from './components/Toast';
 import PostSkeleton from './components/PostSkeleton';
-import { Plus, Bell, Search, Home, Timer, User, Camera, Ruler, MessageSquare, Dumbbell, Apple, MessageCircle, ChefHat, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, Bell, Search, Home, Timer, User, Camera, Ruler, MessageSquare, Dumbbell, Apple, MessageCircle, ChefHat, Loader2, RefreshCw, Trophy, Target } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
 const App: React.FC = () => {
@@ -26,13 +28,14 @@ const App: React.FC = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
 
   // Navigation State
-  const [currentView, setCurrentView] = useState<'home' | 'nutrition' | 'stopwatch' | 'profile' | 'search' | 'messages' | 'notifications' | 'recipes' | 'legal'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'nutrition' | 'stopwatch' | 'profile' | 'search' | 'messages' | 'notifications' | 'recipes' | 'legal' | 'challenges'>('home');
 
   // Home Tab State
   const [activeTab, setActiveTab] = useState<'myStride' | 'community'>('myStride');
 
   // Modal & Fab State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isChallengeModalOpen, setIsChallengeModalOpen] = useState(false);
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false);
 
   // Data State
@@ -797,6 +800,10 @@ const App: React.FC = () => {
               <div className="bg-purple-100 p-2 rounded-full text-purple-600"><MessageSquare size={20} /></div>
               <span className="font-semibold text-slate-700 text-sm">Frase</span>
             </button>
+            <button onClick={() => { setIsChallengeModalOpen(true); setIsFabMenuOpen(false); }} className="flex items-center gap-3 bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 rounded-full shadow-lg hover:from-orange-400 hover:to-amber-400 transition-colors w-40">
+              <div className="bg-white/20 p-2 rounded-full text-white"><Trophy size={20} /></div>
+              <span className="font-semibold text-white text-sm">Desafio</span>
+            </button>
           </div>
         )}
 
@@ -865,6 +872,7 @@ const App: React.FC = () => {
           />
         )}
         {currentView === 'recipes' && <RecipesScreen />}
+        {currentView === 'challenges' && <ChallengesScreen onBack={() => setCurrentView('home')} />}
         {currentView === 'legal' && <LegalScreen onBack={() => setCurrentView('home')} />}
 
         {/* Bottom Navigation */}
@@ -896,6 +904,14 @@ const App: React.FC = () => {
           </button>
 
           <button
+            onClick={() => { setCurrentView('challenges'); setTargetProfileUser(null); }}
+            className={`${currentView === 'challenges' ? 'text-orange-500' : 'text-slate-300 hover:text-orange-500'} transition-colors flex flex-col items-center gap-1`}
+          >
+            <Trophy size={24} strokeWidth={currentView === 'challenges' ? 3 : 2.5} />
+            {currentView === 'challenges' && <div className="w-1 h-1 bg-orange-500 rounded-full"></div>}
+          </button>
+
+          <button
             onClick={() => { setCurrentView('stopwatch'); setTargetProfileUser(null); }}
             className={`${currentView === 'stopwatch' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
           >
@@ -912,6 +928,13 @@ const App: React.FC = () => {
           onSave={handleSavePost}
           postType={selectedPostType}
           initialData={editingPost}
+        />
+
+        {/* Challenge Modal */}
+        <NewChallengeModal
+          isOpen={isChallengeModalOpen}
+          onClose={() => setIsChallengeModalOpen(false)}
+          onSave={() => fetchPosts()}
         />
       </div>
     </div>
