@@ -9,10 +9,10 @@ interface OnboardingScreenProps {
 }
 
 const GOAL_OPTIONS = [
-    { id: 'muscle', label: 'Ganhar massa muscular', icon: Dumbbell, color: 'from-orange-500 to-red-500' },
-    { id: 'weight_loss', label: 'Perder peso', icon: Flame, color: 'from-pink-500 to-rose-500' },
-    { id: 'conditioning', label: 'Melhorar condicionamento', icon: Activity, color: 'from-cyan-500 to-blue-500' },
-    { id: 'maintain', label: 'Manter a forma', icon: Heart, color: 'from-green-500 to-emerald-500' },
+    { id: 'muscle', label: 'Ganhar massa muscular', icon: Dumbbell, color: 'from-orange-500 to-amber-500' },
+    { id: 'weight_loss', label: 'Perder peso', icon: Flame, color: 'from-cyan-500 to-blue-500' },
+    { id: 'conditioning', label: 'Melhorar condicionamento', icon: Activity, color: 'from-lime-500 to-green-500' },
+    { id: 'maintain', label: 'Manter a forma', icon: Heart, color: 'from-purple-500 to-indigo-500' },
 ];
 
 const FEATURE_SLIDES = [
@@ -146,8 +146,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete, userId 
                             key={option.id}
                             onClick={() => setSelectedGoal(option.id)}
                             className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${isSelected
-                                    ? 'border-cyan-500 bg-cyan-50 shadow-lg shadow-cyan-500/20'
-                                    : 'border-slate-200 bg-white hover:border-slate-300'
+                                ? 'border-cyan-500 bg-cyan-50 shadow-lg shadow-cyan-500/20'
+                                : 'border-slate-200 bg-white hover:border-slate-300'
                                 }`}
                         >
                             <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${option.color} flex items-center justify-center shadow-lg`}>
@@ -167,11 +167,11 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete, userId 
                 <button
                     onClick={() => setSelectedGoal('custom')}
                     className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${selectedGoal === 'custom'
-                            ? 'border-cyan-500 bg-cyan-50'
-                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        ? 'border-cyan-500 bg-cyan-50'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
                         }`}
                 >
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg">
                         <Sparkles size={24} className="text-white" />
                     </div>
                     <span className={`font-semibold ${selectedGoal === 'custom' ? 'text-cyan-700' : 'text-slate-700'}`}>
@@ -211,7 +211,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete, userId 
     const renderStep2 = () => (
         <div className="flex-1 flex flex-col px-6 pb-6 animate-in fade-in slide-in-from-right duration-300">
             <div className="text-center mb-8">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-blue-500/30">
+                <div className="w-20 h-20 bg-gradient-to-br from-cyan-500 to-lime-400 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-cyan-500/30">
                     <Scale size={40} className="text-white" />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">Suas medidas iniciais</h2>
@@ -219,42 +219,43 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete, userId 
             </div>
 
             <div className="space-y-4 flex-1">
-                <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 border border-slate-200">
-                    <label className="block text-sm font-bold text-slate-600 mb-2 uppercase tracking-wide">
+                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                    <label className="block text-sm font-bold text-slate-600 mb-2 uppercase tracking-wide text-center">
                         Peso atual
                     </label>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center gap-2">
                         <input
                             type="number"
                             value={weight}
                             onChange={(e) => setWeight(e.target.value)}
-                            placeholder="75"
-                            className="flex-1 text-4xl font-bold text-slate-800 bg-transparent border-none focus:outline-none text-center"
+                            placeholder="00.0"
+                            className="w-32 text-center text-4xl font-bold text-slate-900 bg-transparent border-b-2 border-slate-300 focus:border-cyan-500 focus:outline-none transition-colors pb-1"
                         />
-                        <span className="text-2xl font-semibold text-slate-400">kg</span>
+                        <span className="text-xl font-bold text-slate-400 mt-2">kg</span>
                     </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 border border-slate-200">
-                    <label className="block text-sm font-bold text-slate-600 mb-2 uppercase tracking-wide">
+                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                    <label className="block text-sm font-bold text-slate-600 mb-2 uppercase tracking-wide text-center">
                         Altura
                     </label>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center gap-2">
                         <input
                             type="number"
                             value={height}
                             onChange={(e) => setHeight(e.target.value)}
-                            placeholder="175"
-                            className="flex-1 text-4xl font-bold text-slate-800 bg-transparent border-none focus:outline-none text-center"
+                            placeholder="000"
+                            className="w-32 text-center text-4xl font-bold text-slate-900 bg-transparent border-b-2 border-slate-300 focus:border-cyan-500 focus:outline-none transition-colors pb-1"
                         />
-                        <span className="text-2xl font-semibold text-slate-400">cm</span>
+                        <span className="text-xl font-bold text-slate-400 mt-2">cm</span>
                     </div>
                 </div>
 
                 {weight && height && (
-                    <div className="bg-gradient-to-r from-lime-50 to-green-50 rounded-2xl p-4 border border-lime-200">
-                        <p className="text-center text-lime-700 font-semibold">
-                            📈 Vamos acompanhar sua evolução juntos!
+                    <div className="bg-lime-50 rounded-2xl p-4 border border-lime-200 animate-in fade-in slide-in-from-bottom-2">
+                        <p className="text-center text-lime-700 font-semibold flex items-center justify-center gap-2">
+                            <span className="text-xl">💪</span>
+                            Vamos nessa!
                         </p>
                     </div>
                 )}
@@ -281,7 +282,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete, userId 
     const renderStep3 = () => (
         <div className="flex-1 flex flex-col px-6 pb-6 animate-in fade-in slide-in-from-right duration-300">
             <div className="text-center mb-8">
-                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-purple-500/30">
+                <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-amber-500 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-orange-500/30">
                     {isPrivate ? <Lock size={40} className="text-white" /> : <Globe size={40} className="text-white" />}
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">Privacidade do perfil</h2>
@@ -292,8 +293,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete, userId 
                 <button
                     onClick={() => setIsPrivate(false)}
                     className={`w-full p-5 rounded-2xl border-2 transition-all text-left ${!isPrivate
-                            ? 'border-cyan-500 bg-cyan-50 shadow-lg shadow-cyan-500/20'
-                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        ? 'border-cyan-500 bg-cyan-50 shadow-lg shadow-cyan-500/20'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
                         }`}
                 >
                     <div className="flex items-center gap-4 mb-3">
@@ -314,19 +315,19 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete, userId 
                 <button
                     onClick={() => setIsPrivate(true)}
                     className={`w-full p-5 rounded-2xl border-2 transition-all text-left ${isPrivate
-                            ? 'border-purple-500 bg-purple-50 shadow-lg shadow-purple-500/20'
-                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        ? 'border-orange-500 bg-orange-50 shadow-lg shadow-orange-500/20'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
                         }`}
                 >
                     <div className="flex items-center gap-4 mb-3">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isPrivate ? 'bg-purple-500' : 'bg-slate-200'}`}>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isPrivate ? 'bg-orange-500' : 'bg-slate-200'}`}>
                             <Lock size={24} className={isPrivate ? 'text-white' : 'text-slate-500'} />
                         </div>
                         <div>
-                            <h3 className={`font-bold ${isPrivate ? 'text-purple-700' : 'text-slate-700'}`}>Perfil Privado</h3>
+                            <h3 className={`font-bold ${isPrivate ? 'text-orange-700' : 'text-slate-700'}`}>Perfil Privado</h3>
                             <p className="text-sm text-slate-500">Mais controle sobre sua audiência</p>
                         </div>
-                        {isPrivate && <Check size={24} className="text-purple-500 ml-auto" />}
+                        {isPrivate && <Check size={24} className="text-orange-500 ml-auto" />}
                     </div>
                     <p className="text-sm text-slate-500 ml-16">
                         Apenas seguidores aprovados podem ver seus posts. Você decide quem te segue. 🔐
@@ -380,8 +381,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete, userId 
                             key={idx}
                             onClick={() => setFeatureSlide(idx)}
                             className={`w-2.5 h-2.5 rounded-full transition-all ${idx === featureSlide
-                                    ? 'bg-cyan-500 w-8'
-                                    : 'bg-slate-300 hover:bg-slate-400'
+                                ? 'bg-cyan-500 w-8'
+                                : 'bg-slate-300 hover:bg-slate-400'
                                 }`}
                         />
                     ))}
