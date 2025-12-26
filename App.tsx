@@ -14,6 +14,7 @@ import AuthScreen from './components/AuthScreen';
 import LegalScreen from './components/LegalScreen';
 import ChallengesScreen from './components/ChallengesScreen';
 import NewChallengeModal from './components/NewChallengeModal';
+import OnboardingScreen from './components/OnboardingScreen';
 import { useToast } from './components/Toast';
 import PostSkeleton from './components/PostSkeleton';
 import { Plus, Bell, Search, Home, Timer, User, Camera, Ruler, MessageSquare, Dumbbell, Apple, MessageCircle, ChefHat, Loader2, RefreshCw, Trophy, Target } from 'lucide-react';
@@ -26,6 +27,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [session, setSession] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Navigation State
   const [currentView, setCurrentView] = useState<'home' | 'nutrition' | 'stopwatch' | 'profile' | 'search' | 'messages' | 'notifications' | 'recipes' | 'legal' | 'challenges'>('home');
@@ -156,7 +158,13 @@ const App: React.FC = () => {
       .eq('id', userId)
       .single();
 
-    if (data) setUserProfile(data);
+    if (data) {
+      setUserProfile(data);
+      // Verificar se precisa mostrar onboarding
+      if (data.onboarding_completed === false) {
+        setShowOnboarding(true);
+      }
+    }
     if (error) console.error('Error fetching profile:', error);
   };
 
@@ -592,6 +600,16 @@ const App: React.FC = () => {
       return <LegalScreen onBack={() => setCurrentView('home')} />;
     }
     return <AuthScreen onLogin={handleLogin} onOpenLegal={() => setCurrentView('legal')} />;
+  }
+
+  // --- ONBOARDING OVERLAY ---
+  if (showOnboarding && session?.user?.id) {
+    return (
+      <OnboardingScreen
+        userId={session.user.id}
+        onComplete={() => setShowOnboarding(false)}
+      />
+    );
   }
 
   const renderHomeContent = () => (
