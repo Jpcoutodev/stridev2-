@@ -12,7 +12,7 @@ const GOAL_OPTIONS = [
     { id: 'muscle', label: 'Ganhar massa muscular', icon: Dumbbell, color: 'from-orange-500 to-amber-500' },
     { id: 'weight_loss', label: 'Perder peso', icon: Flame, color: 'from-cyan-500 to-blue-500' },
     { id: 'conditioning', label: 'Melhorar condicionamento', icon: Activity, color: 'from-lime-500 to-green-500' },
-    { id: 'maintain', label: 'Manter a forma', icon: Heart, color: 'from-purple-500 to-indigo-500' },
+    { id: 'maintain', label: 'Manter a forma', icon: Heart, color: 'from-green-500 to-emerald-500' },
 ];
 
 const FEATURE_SLIDES = [
@@ -209,71 +209,74 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete, userId 
     );
 
     const renderStep2 = () => (
-        <div className="flex-1 flex flex-col px-6 pb-6 animate-in fade-in slide-in-from-right duration-300">
-            <div className="text-center mb-8">
-                <div className="w-20 h-20 bg-gradient-to-br from-cyan-500 to-lime-400 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-cyan-500/30">
-                    <Scale size={40} className="text-white" />
+        <div className="flex-1 flex flex-col px-4 pb-4 animate-in fade-in slide-in-from-right duration-300 overflow-y-auto">
+            <div className="text-center mb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-lime-400 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-cyan-500/30">
+                    <Scale size={32} className="text-white" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">Suas medidas iniciais</h2>
-                <p className="text-slate-500">Acompanhe sua evolução ao longo do tempo 📊</p>
+                <h2 className="text-xl font-bold text-slate-900 mb-1">Suas medidas</h2>
+                <p className="text-slate-500 text-sm">Acompanhe sua evolução 📊</p>
             </div>
 
-            <div className="space-y-4 flex-1">
-                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
-                    <label className="block text-sm font-bold text-slate-600 mb-2 uppercase tracking-wide text-center">
+            <div className="space-y-3 flex-1">
+                {/* Peso */}
+                <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                    <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide text-center">
                         Peso atual
                     </label>
                     <div className="flex items-center justify-center gap-2">
                         <input
                             type="number"
+                            inputMode="decimal"
                             value={weight}
                             onChange={(e) => setWeight(e.target.value)}
-                            placeholder="00.0"
-                            className="w-32 text-center text-4xl font-bold text-slate-900 bg-transparent border-b-2 border-slate-300 focus:border-cyan-500 focus:outline-none transition-colors pb-1"
+                            placeholder="75"
+                            className="w-24 text-center text-3xl font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg py-2 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                         />
-                        <span className="text-xl font-bold text-slate-400 mt-2">kg</span>
+                        <span className="text-lg font-bold text-slate-400">kg</span>
                     </div>
                 </div>
 
-                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
-                    <label className="block text-sm font-bold text-slate-600 mb-2 uppercase tracking-wide text-center">
+                {/* Altura */}
+                <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                    <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide text-center">
                         Altura
                     </label>
                     <div className="flex items-center justify-center gap-2">
                         <input
                             type="number"
+                            inputMode="numeric"
                             value={height}
                             onChange={(e) => setHeight(e.target.value)}
-                            placeholder="000"
-                            className="w-32 text-center text-4xl font-bold text-slate-900 bg-transparent border-b-2 border-slate-300 focus:border-cyan-500 focus:outline-none transition-colors pb-1"
+                            placeholder="175"
+                            className="w-24 text-center text-3xl font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg py-2 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                         />
-                        <span className="text-xl font-bold text-slate-400 mt-2">cm</span>
+                        <span className="text-lg font-bold text-slate-400">cm</span>
                     </div>
                 </div>
 
                 {weight && height && (
-                    <div className="bg-lime-50 rounded-2xl p-4 border border-lime-200 animate-in fade-in slide-in-from-bottom-2">
-                        <p className="text-center text-lime-700 font-semibold flex items-center justify-center gap-2">
-                            <span className="text-xl">💪</span>
-                            Vamos nessa!
+                    <div className="bg-lime-50 rounded-xl p-3 border border-lime-200">
+                        <p className="text-center text-lime-700 font-semibold text-sm">
+                            💪 Vamos nessa!
                         </p>
                     </div>
                 )}
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-4 pt-2">
                 <button
                     onClick={handleSkip}
-                    className="flex-1 py-4 text-slate-500 font-semibold rounded-2xl hover:bg-slate-100 transition-colors"
+                    className="flex-1 py-3 text-slate-500 font-semibold rounded-xl hover:bg-slate-100 transition-colors text-sm"
                 >
                     Pular
                 </button>
                 <button
                     onClick={handleNext}
-                    className="flex-1 py-4 bg-gradient-to-r from-cyan-500 to-lime-400 text-white font-bold rounded-2xl shadow-lg shadow-cyan-500/30 hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-lime-400 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/30 hover:shadow-xl transition-all flex items-center justify-center gap-2 text-sm"
                 >
                     Próximo
-                    <ArrowRight size={20} />
+                    <ArrowRight size={18} />
                 </button>
             </div>
         </div>
