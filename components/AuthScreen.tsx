@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, User, Calendar, MapPin, AtSign, ArrowRight, Loader2, ArrowLeft, Send } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useToast } from './Toast';
+import { searchCities } from '../data/brazilianCities';
 
 interface AuthScreenProps {
     onLogin: () => void;
@@ -24,6 +25,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onOpenLegal }) => {
     const [city, setCity] = useState('');
     const [handle, setHandle] = useState('');
     const [termsAccepted, setTermsAccepted] = useState(false);
+
+    // City autocomplete
+    const [citySuggestions, setCitySuggestions] = useState<{ city: string; state: string; display: string }[]>([]);
+    const [showCitySuggestions, setShowCitySuggestions] = useState(false);
 
     // Formatar data de nascimento no formato DD/MM/AAAA
     const formatDobInput = (value: string) => {
@@ -278,7 +283,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onOpenLegal }) => {
                                         />
                                     </div>
                                     <div className="relative group flex-1">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                                             <MapPin className="text-slate-400 group-focus-within:text-cyan-500 transition-colors" size={18} />
                                         </div>
                                         <input
@@ -286,9 +291,44 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onOpenLegal }) => {
                                             type="text"
                                             placeholder="Cidade"
                                             value={city}
-                                            onChange={(e) => setCity(e.target.value)}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                setCity(value);
+                                                const suggestions = searchCities(value, 8);
+                                                setCitySuggestions(suggestions);
+                                                setShowCitySuggestions(suggestions.length > 0);
+                                            }}
+                                            onFocus={() => {
+                                                if (citySuggestions.length > 0) setShowCitySuggestions(true);
+                                            }}
+                                            onBlur={() => {
+                                                // Delay to allow click on suggestion
+                                                setTimeout(() => setShowCitySuggestions(false), 200);
+                                            }}
                                             className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl py-3.5 pl-10 pr-2 outline-none focus:bg-white focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 transition-all font-medium text-sm"
                                         />
+                                        {/* Autocomplete Dropdown */}
+                                        {showCitySuggestions && citySuggestions.length > 0 && (
+                                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
+                                                {citySuggestions.map((suggestion, index) => (
+                                                    <button
+                                                        key={index}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setCity(suggestion.display);
+                                                            setShowCitySuggestions(false);
+                                                            setCitySuggestions([]);
+                                                        }}
+                                                        className="w-full text-left px-4 py-2.5 hover:bg-cyan-50 text-slate-700 text-sm font-medium transition-colors flex items-center gap-2 first:rounded-t-xl last:rounded-b-xl"
+                                                    >
+                                                        <MapPin size={14} className="text-cyan-500" />
+                                                        <span>{suggestion.city}</span>
+                                                        <span className="text-slate-400">,</span>
+                                                        <span className="text-cyan-600 font-bold">{suggestion.state}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
