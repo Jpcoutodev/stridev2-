@@ -60,23 +60,25 @@ const NewChallengeModal: React.FC<NewChallengeModalProps> = ({ isOpen, onClose, 
 
             if (challengeError) throw challengeError;
 
-            // 2. Criar post automático no feed
-            const frequencyLabel = {
-                daily: 'dias',
-                weekly: 'semanas',
-                monthly: 'meses'
-            }[frequency];
+            // 2. Criar post automático no feed com informações completas
+            const frequencyText = frequency === 'daily'
+                ? 'todo dia'
+                : frequency === 'weekly'
+                    ? `${timesPerPeriod}x na semana`
+                    : `${timesPerPeriod}x no mês`;
 
-            const timesLabel = frequency === 'daily'
-                ? `todos os dias por ${targetCount} dias`
-                : `${timesPerPeriod}x ${FREQUENCY_OPTIONS.find(o => o.value === frequency)?.periodLabel} por ${targetCount} ${frequencyLabel}`;
+            const durationText = frequency === 'daily'
+                ? `${targetCount} dias`
+                : frequency === 'weekly'
+                    ? `${targetCount} semana${targetCount > 1 ? 's' : ''}`
+                    : `${targetCount} ${targetCount > 1 ? 'meses' : 'mês'}`;
 
             const { error: postError } = await supabase
                 .from('posts')
                 .insert({
                     user_id: session.user.id,
                     type: 'challenge',
-                    caption: `🚀 Novo Desafio! "${title}"\n\n🎯 Meta: ${timesLabel}\n📈 Status: Em andamento\n\nBora lá! 💪`,
+                    caption: `🚀 Novo Desafio!\n\n🎯 ${title}\n📅 ${frequencyText} por ${durationText}\n\n💪 Bora lá!`,
                     challenge_id: challenge.id
                 });
 

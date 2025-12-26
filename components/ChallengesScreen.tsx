@@ -154,11 +154,22 @@ const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) => {
                 await supabase.from('challenges').update(updateData).eq('id', challenge.id);
 
                 if (isCompleted) {
-                    const frequencyLabel = { daily: 'dias', weekly: 'semanas', monthly: 'meses' }[challenge.frequency];
+                    const frequencyText = challenge.frequency === 'daily'
+                        ? 'todo dia'
+                        : challenge.frequency === 'weekly'
+                            ? `${challenge.times_per_period || 1}x na semana`
+                            : `${challenge.times_per_period || 1}x no mês`;
+
+                    const durationText = challenge.frequency === 'daily'
+                        ? `${challenge.target_count} dias`
+                        : challenge.frequency === 'weekly'
+                            ? `${challenge.target_count} semana${challenge.target_count > 1 ? 's' : ''}`
+                            : `${challenge.target_count} ${challenge.target_count > 1 ? 'meses' : 'mês'}`;
+
                     await supabase.from('posts').insert({
                         user_id: session.user.id,
                         type: 'challenge',
-                        caption: `🏆 Desafio Concluído! 🎉\n\n"${challenge.title}"\n\n✅ Meta alcançada: ${challenge.target_count} ${frequencyLabel}\n🔥 Missão cumprida!\n\nNunca duvide da sua capacidade! 💪`,
+                        caption: `🏆 Desafio Concluído!\n\n🎯 ${challenge.title}\n📅 ${frequencyText} por ${durationText}\n\n✅ Missão cumprida! 💪`,
                         challenge_id: challenge.id
                     });
                     showToast('🏆 Parabéns! Desafio concluído!', 'success');
