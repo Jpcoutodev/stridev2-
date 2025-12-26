@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isChallengeModalOpen, setIsChallengeModalOpen] = useState(false);
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false);
+  const [isFoodMenuOpen, setIsFoodMenuOpen] = useState(false);
 
   // Data State
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
@@ -877,47 +878,66 @@ const App: React.FC = () => {
         {currentView === 'legal' && <LegalScreen onBack={() => setCurrentView('home')} />}
 
         {/* Bottom Navigation */}
-        <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-slate-100 px-5 py-4 flex justify-between items-center z-30">
+        <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-3.5 flex justify-between items-center z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
           <button
-            onClick={() => { setCurrentView('home'); setTargetProfileUser(null); }}
-            className={`${currentView === 'home' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
+            onClick={() => { setCurrentView('home'); setTargetProfileUser(null); setIsFoodMenuOpen(false); }}
+            className={`${currentView === 'home' ? 'text-cyan-600' : 'text-slate-400 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
           >
-            <Home size={24} strokeWidth={currentView === 'home' ? 3 : 2.5} />
-            {currentView === 'home' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
+            <Home size={26} strokeWidth={currentView === 'home' ? 2.5 : 2} />
+            {currentView === 'home' && <div className="w-1.5 h-1.5 bg-cyan-600 rounded-full"></div>}
+          </button>
+
+          {/* Unified Food Button (Apple) */}
+          <div className="relative">
+            <button
+              onClick={() => setIsFoodMenuOpen(!isFoodMenuOpen)}
+              className={`${currentView === 'nutrition' || currentView === 'recipes' ? 'text-lime-500' : 'text-slate-400 hover:text-lime-500'} transition-colors flex flex-col items-center gap-1`}
+            >
+              <Apple size={26} strokeWidth={(currentView === 'nutrition' || currentView === 'recipes') ? 2.5 : 2} />
+              {(currentView === 'nutrition' || currentView === 'recipes') && <div className="w-1.5 h-1.5 bg-lime-500 rounded-full"></div>}
+            </button>
+
+            {/* Food Menu Popup */}
+            {isFoodMenuOpen && (
+              <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 w-44">
+                <button
+                  onClick={() => { setCurrentView('nutrition'); setTargetProfileUser(null); setIsFoodMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-lime-50 transition-colors border-b border-slate-100"
+                >
+                  <div className="w-9 h-9 bg-lime-100 rounded-xl flex items-center justify-center">
+                    <Apple size={20} className="text-lime-600" />
+                  </div>
+                  <span className="font-semibold text-slate-700">Nutrição</span>
+                </button>
+                <button
+                  onClick={() => { setCurrentView('recipes'); setTargetProfileUser(null); setIsFoodMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-orange-50 transition-colors"
+                >
+                  <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center">
+                    <ChefHat size={20} className="text-orange-600" />
+                  </div>
+                  <span className="font-semibold text-slate-700">Chef IA</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="w-10"></div> {/* Spacer for FAB */}
+
+          <button
+            onClick={() => { setCurrentView('challenges'); setTargetProfileUser(null); setIsFoodMenuOpen(false); }}
+            className={`${currentView === 'challenges' ? 'text-orange-500' : 'text-slate-400 hover:text-orange-500'} transition-colors flex flex-col items-center gap-1`}
+          >
+            <Trophy size={26} strokeWidth={currentView === 'challenges' ? 2.5 : 2} />
+            {currentView === 'challenges' && <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>}
           </button>
 
           <button
-            onClick={() => { setCurrentView('nutrition'); setTargetProfileUser(null); }}
-            className={`${currentView === 'nutrition' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
+            onClick={() => { setCurrentView('stopwatch'); setTargetProfileUser(null); setIsFoodMenuOpen(false); }}
+            className={`${currentView === 'stopwatch' ? 'text-cyan-600' : 'text-slate-400 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
           >
-            <Apple size={24} strokeWidth={currentView === 'nutrition' ? 3 : 2.5} />
-            {currentView === 'nutrition' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
-          </button>
-
-          <div className="w-8"></div> {/* Spacer for FAB */}
-
-          <button
-            onClick={() => { setCurrentView('recipes'); setTargetProfileUser(null); }}
-            className={`${currentView === 'recipes' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
-          >
-            <ChefHat size={24} strokeWidth={currentView === 'recipes' ? 3 : 2.5} />
-            {currentView === 'recipes' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
-          </button>
-
-          <button
-            onClick={() => { setCurrentView('challenges'); setTargetProfileUser(null); }}
-            className={`${currentView === 'challenges' ? 'text-orange-500' : 'text-slate-300 hover:text-orange-500'} transition-colors flex flex-col items-center gap-1`}
-          >
-            <Trophy size={24} strokeWidth={currentView === 'challenges' ? 3 : 2.5} />
-            {currentView === 'challenges' && <div className="w-1 h-1 bg-orange-500 rounded-full"></div>}
-          </button>
-
-          <button
-            onClick={() => { setCurrentView('stopwatch'); setTargetProfileUser(null); }}
-            className={`${currentView === 'stopwatch' ? 'text-cyan-600' : 'text-slate-300 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
-          >
-            <Timer size={24} strokeWidth={currentView === 'stopwatch' ? 3 : 2.5} />
-            {currentView === 'stopwatch' && <div className="w-1 h-1 bg-cyan-600 rounded-full"></div>}
+            <Timer size={26} strokeWidth={currentView === 'stopwatch' ? 2.5 : 2} />
+            {currentView === 'stopwatch' && <div className="w-1.5 h-1.5 bg-cyan-600 rounded-full"></div>}
           </button>
 
         </div>
