@@ -344,6 +344,7 @@ const App: React.FC = () => {
             weight: displayData.weight,
             measurements: displayData.measurements,
             workoutItems: displayData.workout_items,
+            challengeId: p.challenge_id,
             comments: [],
             isPrivate: p.profiles?.is_private || false,
             // Shared post metadata

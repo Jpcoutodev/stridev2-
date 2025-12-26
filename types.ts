@@ -9,11 +9,11 @@ export interface CommentModel {
 
 export interface PostModel {
   id: string;
-  userId: string; // Added to identify post owner
-  type: 'image' | 'measurement' | 'text' | 'workout';
+  userId: string;
+  type: 'image' | 'measurement' | 'text' | 'workout' | 'challenge';
   username: string;
   userAvatar: string;
-  date: string; // ISO 8601 Date String
+  date: string;
   clapCount: number;
   caption: string;
 
@@ -22,6 +22,7 @@ export interface PostModel {
   weight?: number;
   measurements?: string;
   workoutItems?: { activity: string; detail: string }[];
+  challengeId?: string;
 
   // Interaction
   comments?: CommentModel[];
@@ -29,8 +30,8 @@ export interface PostModel {
 
   // Shared/Repost
   sharedPostId?: string;
-  originalPost?: PostModel; // The original post data if this is a share
-  sharedByUsername?: string; // Username of person who shared (for display)
+  originalPost?: PostModel;
+  sharedByUsername?: string;
   sharedByAvatar?: string;
 }
 

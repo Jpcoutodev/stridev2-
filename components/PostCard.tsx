@@ -1,17 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { PostModel, CommentModel } from '../types';
-import { MessageCircle, Share2, Ruler, Scale, Dumbbell, Quote, MoreHorizontal, Edit, Trash2, Calendar, EyeOff, Send, Reply, Copy, Check, Loader2 } from 'lucide-react';
+import { MessageCircle, Share2, Ruler, Scale, Dumbbell, Quote, MoreHorizontal, Edit, Trash2, Calendar, EyeOff, Send, Reply, Copy, Check, Loader2, Trophy, Target, UserPlus } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { useToast } from './Toast';
 
 interface PostCardProps {
   post: PostModel;
   onDelete?: () => void;
   onEdit?: () => void;
   onBlockUser?: () => void;
-  onUserClick?: (username: string) => void; // New prop for profile navigation
+  onUserClick?: (username: string) => void;
+  onJoinChallenge?: (challengeId: string) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser, onUserClick }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser, onUserClick, onJoinChallenge }) => {
+  const { showToast } = useToast();
   const [currentUser, setCurrentUser] = useState<{ id: string, username: string, avatar_url: string } | null>(null);
 
   const [claps, setClaps] = useState(post.clapCount);
@@ -32,6 +35,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
   const [showShareTooltip, setShowShareTooltip] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+
+  // Challenge Join State
+  const [isJoiningChallenge, setIsJoiningChallenge] = useState(false);
+  const [hasJoinedChallenge, setHasJoinedChallenge] = useState(false);
 
   // Init auth
   useEffect(() => {
@@ -239,6 +246,74 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
       console.error('Error sharing post:', err);
     } finally {
       setIsSharing(false);
+    }
+  };
+
+  // --- Join Challenge Logic ---
+  const handleJoinChallenge = async () => {
+    if (!currentUser || !post.challengeId || isJoiningChallenge || hasJoinedChallenge) return;
+
+    // Don't allow joining own challenge
+    if (currentUser.id === post.userId) {
+      showToast('Este é seu próprio desafio!', 'error');
+      return;
+    }
+
+    setIsJoiningChallenge(true);
+
+    try {
+      // 1. Fetch original challenge details
+      const { data: originalChallenge, error: fetchError } = await supabase
+        .from('challenges')
+        .select('*')
+        .eq('id', post.challengeId)
+        .single();
+
+      if (fetchError || !originalChallenge) {
+        throw new Error('Desafio não encontrado');
+      }
+
+      // 2. Check if user already has this challenge
+      const { data: existingChallenge } = await supabase
+        .from('challenges')
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .eq('original_challenge_id', post.challengeId)
+        .single();
+
+      if (existingChallenge) {
+        showToast('Você já está participando deste desafio!', 'error');
+        setHasJoinedChallenge(true);
+        return;
+      }
+
+      // 3. Create a copy of the challenge for the current user
+      const { error: createError } = await supabase
+        .from('challenges')
+        .insert({
+          user_id: currentUser.id,
+          title: originalChallenge.title,
+          description: originalChallenge.description,
+          frequency: originalChallenge.frequency,
+          target_count: originalChallenge.target_count,
+          current_count: 0,
+          status: 'active',
+          original_challenge_id: post.challengeId
+        });
+
+      if (createError) throw createError;
+
+      setHasJoinedChallenge(true);
+      showToast('🎯 Você entrou no desafio! Boa sorte!', 'success');
+
+      if (onJoinChallenge) {
+        onJoinChallenge(post.challengeId);
+      }
+    } catch (err: any) {
+      console.error('Error joining challenge:', err);
+      showToast(err.message || 'Erro ao aderir ao desafio', 'error');
+    } finally {
+      setIsJoiningChallenge(false);
     }
   };
 
@@ -472,6 +547,56 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Challenge Section (Visible if type is challenge) */}
+      {post.type === 'challenge' && (
+        <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 border-t border-b border-orange-100/50">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="bg-orange-500 p-1.5 rounded-lg">
+              <Trophy size={16} className="text-white" />
+            </div>
+            <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">Desafio</span>
+            {post.caption?.includes('Concluído') ? (
+              <span className="ml-auto bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase">
+                ✅ Concluído
+              </span>
+            ) : (
+              <span className="ml-auto bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase">
+                🔥 Em andamento
+              </span>
+            )}
+          </div>
+
+          {/* Join Challenge Button (Only for other users, not owner) */}
+          {currentUser && currentUser.id !== post.userId && post.challengeId && !post.caption?.includes('Concluído') && (
+            <button
+              onClick={handleJoinChallenge}
+              disabled={isJoiningChallenge || hasJoinedChallenge}
+              className={`w-full mt-2 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${hasJoinedChallenge
+                  ? 'bg-green-100 text-green-700 cursor-default'
+                  : 'bg-orange-500 hover:bg-orange-600 text-white active:scale-[0.98]'
+                }`}
+            >
+              {isJoiningChallenge ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Entrando...
+                </>
+              ) : hasJoinedChallenge ? (
+                <>
+                  <Check size={18} />
+                  Você está participando!
+                </>
+              ) : (
+                <>
+                  <UserPlus size={18} />
+                  Aderir ao Desafio
+                </>
+              )}
+            </button>
+          )}
         </div>
       )}
 
