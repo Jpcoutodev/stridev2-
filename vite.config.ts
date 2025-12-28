@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
           background_color: '#0f172a',
           display: 'standalone',
           orientation: 'portrait',
+          dir: 'ltr',
           id: '/',
           start_url: '/',
           icons: [
@@ -44,7 +45,50 @@ export default defineConfig(({ mode }) => {
             'health',
             'social'
           ],
-          screenshots: [],
+          screenshots: [
+            {
+              src: '/screenshots/mobile-profile.jpg',
+              sizes: '360x640',
+              type: 'image/jpeg',
+              form_factor: 'narrow',
+              label: 'User Profile'
+            },
+            {
+              src: '/screenshots/mobile-challenges.jpg',
+              sizes: '360x640',
+              type: 'image/jpeg',
+              form_factor: 'narrow',
+              label: 'Challenges List'
+            },
+            {
+              src: '/screenshots/mobile-workout.jpg',
+              sizes: '360x640',
+              type: 'image/jpeg',
+              form_factor: 'narrow',
+              label: 'Workout Setup'
+            },
+            {
+              src: '/screenshots/web-profile.jpg',
+              sizes: '1280x720',
+              type: 'image/jpeg',
+              form_factor: 'wide',
+              label: 'Web Profile'
+            },
+            {
+              src: '/screenshots/web-challenges.jpg',
+              sizes: '1280x720',
+              type: 'image/jpeg',
+              form_factor: 'wide',
+              label: 'Web Challenges'
+            },
+            {
+              src: '/screenshots/web-nutrition.jpg',
+              sizes: '1280x720',
+              type: 'image/jpeg',
+              form_factor: 'wide',
+              label: 'Web Nutrition'
+            }
+          ],
           prefer_related_applications: false
         }
       })
