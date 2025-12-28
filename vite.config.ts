@@ -48,44 +48,50 @@ export default defineConfig(({ mode }) => {
           screenshots: [
             {
               src: '/screenshots/mobile-profile.jpg',
-              sizes: '360x640',
+              sizes: '360x800',
               type: 'image/jpeg',
               form_factor: 'narrow',
+              platform: 'android',
               label: 'User Profile'
             },
             {
               src: '/screenshots/mobile-challenges.jpg',
-              sizes: '360x640',
+              sizes: '360x800',
               type: 'image/jpeg',
               form_factor: 'narrow',
+              platform: 'android',
               label: 'Challenges List'
             },
             {
               src: '/screenshots/mobile-workout.jpg',
-              sizes: '360x640',
+              sizes: '360x800',
               type: 'image/jpeg',
               form_factor: 'narrow',
+              platform: 'android',
               label: 'Workout Setup'
             },
             {
               src: '/screenshots/web-profile.jpg',
-              sizes: '1280x720',
+              sizes: '1000x812',
               type: 'image/jpeg',
               form_factor: 'wide',
+              platform: 'windows',
               label: 'Web Profile'
             },
             {
               src: '/screenshots/web-challenges.jpg',
-              sizes: '1280x720',
+              sizes: '1000x675',
               type: 'image/jpeg',
               form_factor: 'wide',
+              platform: 'windows',
               label: 'Web Challenges'
             },
             {
               src: '/screenshots/web-nutrition.jpg',
-              sizes: '1280x720',
+              sizes: '883x724',
               type: 'image/jpeg',
               form_factor: 'wide',
+              platform: 'windows',
               label: 'Web Nutrition'
             }
           ],
