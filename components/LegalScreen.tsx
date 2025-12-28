@@ -52,8 +52,8 @@ const LegalScreen: React.FC<LegalScreenProps> = ({ onBack, initialTab = 'terms' 
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${activeTab === tab.id
-                                        ? 'bg-white text-cyan-600 shadow-md'
-                                        : 'bg-white/10 text-white hover:bg-white/20'
+                                    ? 'bg-white text-cyan-600 shadow-md'
+                                    : 'bg-white/10 text-white hover:bg-white/20'
                                     }`}
                             >
                                 <Icon size={16} />
@@ -141,32 +141,59 @@ const TermsContent = () => (
             <li>Violar direitos de propriedade intelectual de terceiros</li>
         </ul>
 
-        <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-3">6. Suspensão e Encerramento</h3>
+        <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-3">6. Moderação de Conteúdo</h3>
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-4">
+            <p className="text-slate-700 font-medium mb-2">⚠️ Aviso Importante sobre Moderação</p>
+            <p className="text-slate-600 text-sm">
+                Todo conteúdo publicado no Stride Up (textos, imagens e comentários) pode ser analisado automaticamente
+                por sistemas de inteligência artificial para detecção de conteúdo impróprio.
+            </p>
+        </div>
+        <p className="text-slate-700 leading-relaxed mb-4">
+            Para manter um ambiente seguro e respeitoso, o Stride Up utiliza tecnologias de moderação que incluem:
+        </p>
+        <ul className="list-disc list-inside text-slate-700 space-y-2 mb-4">
+            <li><strong>Análise Automatizada por IA:</strong> Postagens podem ser analisadas por inteligência artificial para detecção de conteúdo que viole nossos termos (nudez, violência, discurso de ódio, etc.)</li>
+            <li><strong>Denúncias de Usuários:</strong> Outros usuários podem denunciar conteúdo que considerem inadequado</li>
+            <li><strong>Revisão Manual:</strong> Nossa equipe de moderação pode revisar conteúdos flagrados</li>
+            <li><strong>Remoção de Conteúdo:</strong> Reservamo-nos o direito de remover qualquer conteúdo que viole estes termos</li>
+        </ul>
+        <p className="text-slate-700 leading-relaxed mb-4">
+            <strong>Consequências:</strong> A violação das políticas de conteúdo pode resultar em:
+        </p>
+        <ul className="list-disc list-inside text-slate-700 space-y-2 mb-4">
+            <li>Remoção do conteúdo sem aviso prévio</li>
+            <li>Advertência formal</li>
+            <li>Suspensão temporária da conta</li>
+            <li>Encerramento permanente da conta em casos graves ou reincidentes</li>
+        </ul>
+
+        <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-3">7. Suspensão e Encerramento</h3>
         <p className="text-slate-700 leading-relaxed mb-4">
             Reservamo-nos o direito de suspender ou encerrar sua conta a qualquer momento, sem aviso prévio,
             se você violar estes Termos de Uso ou se envolver em atividades fraudulentas ou prejudiciais.
         </p>
 
-        <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-3">7. Isenção de Garantias</h3>
+        <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-3">8. Isenção de Garantias</h3>
         <p className="text-slate-700 leading-relaxed mb-4">
             O Stride Up é fornecido "como está" e "conforme disponível", sem garantias de qualquer tipo.
             Não garantimos que o serviço será ininterrupto, seguro ou livre de erros.
         </p>
 
-        <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-3">8. Limitação de Responsabilidade</h3>
+        <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-3">9. Limitação de Responsabilidade</h3>
         <p className="text-slate-700 leading-relaxed mb-4">
             Em nenhuma circunstância seremos responsáveis por danos indiretos, incidentais, especiais ou
             consequenciais decorrentes do uso ou impossibilidade de uso do aplicativo.
         </p>
 
-        <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-3">9. Modificações</h3>
+        <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-3">10. Modificações</h3>
         <p className="text-slate-700 leading-relaxed mb-4">
             Reservamo-nos o direito de modificar estes Termos de Uso a qualquer momento. As alterações
             entrarão em vigor imediatamente após a publicação. Seu uso continuado do aplicativo após
             as alterações constitui aceitação dos novos termos.
         </p>
 
-        <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-3">10. Lei Aplicável</h3>
+        <h3 className="text-xl font-semibold text-slate-800 mt-6 mb-3">11. Lei Aplicável</h3>
         <p className="text-slate-700 leading-relaxed mb-4">
             Estes Termos são regidos pelas leis da República Federativa do Brasil. Qualquer disputa
             será resolvida nos tribunais brasileiros.
