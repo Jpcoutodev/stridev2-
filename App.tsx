@@ -109,6 +109,28 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // -- PWA SHORTCUT URL PARAMETER HANDLING --
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const screenParam = params.get('screen');
+    const tabParam = params.get('tab');
+
+    if (screenParam) {
+      const validScreens = ['nutrition', 'stopwatch', 'challenges', 'profile', 'search', 'messages', 'notifications', 'recipes', 'legal'];
+      if (validScreens.includes(screenParam)) {
+        setCurrentView(screenParam as any);
+      }
+      // Clean URL after navigation
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    if (tabParam === 'community') {
+      setActiveTab('community');
+      setCurrentView('home');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   // -- REAL-TIME NOTIFICATIONS --
   useEffect(() => {
     if (!session?.user?.id) return;

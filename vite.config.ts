@@ -89,6 +89,36 @@ export default defineConfig(({ mode }) => {
               label: 'Web Nutrition'
             }
           ],
+          shortcuts: [
+            {
+              name: 'Cronômetro',
+              short_name: 'Timer',
+              description: 'Iniciar cronômetro de treino',
+              url: '/?screen=stopwatch',
+              icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }]
+            },
+            {
+              name: 'Nutrição',
+              short_name: 'Nutrição',
+              description: 'Analisar refeições e calorias',
+              url: '/?screen=nutrition',
+              icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }]
+            },
+            {
+              name: 'Desafios',
+              short_name: 'Desafios',
+              description: 'Ver meus desafios ativos',
+              url: '/?screen=challenges',
+              icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }]
+            },
+            {
+              name: 'Comunidade',
+              short_name: 'Feed',
+              description: 'Ver publicações da comunidade',
+              url: '/?tab=community',
+              icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }]
+            }
+          ],
           prefer_related_applications: false
         }
       })
