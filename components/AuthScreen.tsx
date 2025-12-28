@@ -139,6 +139,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onOpenLegal }) => {
                             console.error("Profile creation error", profileError);
                         }
                     }
+
+                    // Force onboarding flag to false to ensure valid redirection
+                    await supabase.from('profiles').upsert({
+                        id: data.user.id,
+                        onboarding_completed: false
+                    }, { onConflict: 'id', ignoreDuplicates: false });
                 }
 
                 showToast('Cadastro realizado! Se o login não for automático, faça login agora.', 'success');
