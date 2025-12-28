@@ -16,6 +16,7 @@ import ChallengesScreen from './components/ChallengesScreen';
 import NewChallengeModal from './components/NewChallengeModal';
 import OnboardingScreen from './components/OnboardingScreen';
 import AdminScreen from './components/AdminScreen';
+import DeleteAccountScreen from './components/DeleteAccountScreen';
 import { useToast } from './components/Toast';
 import PostSkeleton from './components/PostSkeleton';
 import { Plus, Bell, Search, Home, Timer, User, Camera, Ruler, MessageSquare, Dumbbell, Apple, MessageCircle, ChefHat, Loader2, RefreshCw, Trophy, Target } from 'lucide-react';
@@ -31,7 +32,8 @@ const App: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Navigation State
-  const [currentView, setCurrentView] = useState<'home' | 'nutrition' | 'stopwatch' | 'profile' | 'search' | 'messages' | 'notifications' | 'recipes' | 'legal' | 'challenges' | 'admin'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'nutrition' | 'stopwatch' | 'profile' | 'search' | 'messages' | 'notifications' | 'recipes' | 'legal' | 'challenges' | 'admin' | 'delete_account'>('home');
+  const [initialLegalTab, setInitialLegalTab] = useState<'terms' | 'privacy' | 'security' | 'lgpd'>('terms');
 
   // Home Tab State
   const [activeTab, setActiveTab] = useState<'myStride' | 'community'>('myStride');
@@ -116,7 +118,7 @@ const App: React.FC = () => {
     const tabParam = params.get('tab');
 
     if (screenParam) {
-      const validScreens = ['nutrition', 'stopwatch', 'challenges', 'profile', 'search', 'messages', 'notifications', 'recipes', 'legal'];
+      const validScreens = ['nutrition', 'stopwatch', 'challenges', 'profile', 'search', 'messages', 'notifications', 'recipes', 'legal', 'delete_account'];
       if (validScreens.includes(screenParam)) {
         setCurrentView(screenParam as any);
       }
@@ -128,6 +130,11 @@ const App: React.FC = () => {
       setActiveTab('community');
       setCurrentView('home');
       window.history.replaceState({}, '', window.location.pathname);
+    } else if (screenParam === 'legal' && tabParam) {
+      // Support for ?screen=legal&tab=privacy
+      if (['terms', 'privacy', 'security', 'lgpd'].includes(tabParam)) {
+        setInitialLegalTab(tabParam as any);
+      }
     }
   }, []);
 
@@ -632,7 +639,13 @@ const App: React.FC = () => {
   if (!isAuthenticated) {
     // If legal screen is requested, show it, otherwise show auth
     if (currentView === 'legal') {
-      return <LegalScreen onBack={() => setCurrentView('home')} />;
+      return <LegalScreen onBack={() => setCurrentView('home')} initialTab={initialLegalTab} />;
+    }
+    if (currentView === 'delete_account') {
+      return <DeleteAccountScreen onBack={() => {
+        window.history.replaceState({}, '', window.location.pathname); // Clean URL
+        setCurrentView('home');
+      }} />;
     }
     return <AuthScreen onLogin={handleLogin} onOpenLegal={() => setCurrentView('legal')} />;
   }
