@@ -515,15 +515,20 @@ const NutritionScreen: React.FC = () => {
                             const { data: { session } } = await supabase.auth.getSession();
                             if (!session) return;
 
-                            const { error } = await supabase.from('posts').insert({
+                            const { data: insertedPost, error } = await supabase.from('posts').insert({
                                 user_id: session.user.id,
                                 type: 'text',
                                 caption: caption
-                            });
+                            }).select('id').single();
 
                             if (error) {
                                 showToast('Erro ao postar: ' + error.message, 'error');
                             } else {
+                                // Background AI analysis
+                                if (insertedPost) {
+                                    const { analyzePost } = await import('../lib/openai');
+                                    analyzePost(insertedPost.id, caption);
+                                }
                                 showToast('Resumo postado no seu feed! 🎉', 'success');
                             }
                         }}

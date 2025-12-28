@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, Square, Flag, RotateCcw, Timer, Coffee, Settings2, Minus, Plus, Dumbbell, Volume2, VolumeX, Save, Loader2 } from 'lucide-react';
+import { Play, Pause, Square, Flag, RotateCcw, Timer, Coffee, Settings2, Minus, Plus, Dumbbell, Volume2, VolumeX, Save, Loader2, Share2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useToast } from './Toast';
+import { analyzePost } from '../lib/openai';
 
 type Mode = 'free' | 'interval';
 type IntervalPhase = 'ready' | 'work' | 'rest' | 'finished';
@@ -38,6 +39,9 @@ const StopwatchScreen: React.FC = () => {
   // Interval Timestamp Refs
   const intervalEndTimeRef = useRef<number>(0);
   const intervalPausedLeftRef = useRef<number>(0); // Seconds left when paused
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [activityName, setActivityName] = useState('');
+  const [shouldPostToFeed, setShouldPostToFeed] = useState(true);
 
   // Refs
   const mainIntervalRef = useRef<number | null>(null);
@@ -92,7 +96,15 @@ const StopwatchScreen: React.FC = () => {
   // ==========================================
   // DB SAVE LOGIC
   // ==========================================
-  const handleSaveWorkout = async () => {
+  const handleOpenSaveModal = () => {
+    // Determine default name based on mode
+    const defaultName = mode === 'free' ? 'Treino Livre' : 'Treino Intervalado';
+    setActivityName(defaultName);
+    setShouldPostToFeed(true);
+    setShowShareModal(true);
+  };
+
+  const handleConfirmSave = async () => {
     try {
       setIsSaving(true);
       const { data: { session } } = await supabase.auth.getSession();
@@ -101,22 +113,56 @@ const StopwatchScreen: React.FC = () => {
         return;
       }
 
-      const payload = {
+      const totalTimeMs = mode === 'free' ? time : (sets * (workSecs + restSecs) * 1000);
+
+      // 1. Save to Workouts Table (History)
+      const workoutPayload = {
         user_id: session.user.id,
         mode: mode,
-        total_time_ms: mode === 'free' ? time : (sets * (workSecs + restSecs) * 1000),
+        total_time_ms: totalTimeMs,
         rounds_completed: mode === 'interval' ? sets : null,
         work_time_sec: mode === 'interval' ? workSecs : null,
         rest_time_sec: mode === 'interval' ? restSecs : null,
         created_at: new Date()
       };
 
-      const { error } = await supabase.from('workouts').insert(payload);
-      if (error) throw error;
+      const { error: workoutError } = await supabase.from('workouts').insert(workoutPayload);
+      if (workoutError) throw workoutError;
+
+      // 2. Optional: Post to Feed
+      if (shouldPostToFeed) {
+        // Construct detailed string
+        let workoutDetails = [];
+        if (mode === 'free') {
+          workoutDetails.push({ activity: 'Duração', detail: formatTimeForPost(totalTimeMs) });
+        } else {
+          workoutDetails.push({ activity: 'Séries', detail: `${sets}x` });
+          workoutDetails.push({ activity: 'Ação', detail: `${workSecs}s` });
+          workoutDetails.push({ activity: 'Descanso', detail: `${restSecs}s` });
+        }
+
+        const postPayload = {
+          user_id: session.user.id,
+          type: 'workout',
+          caption: activityName, // User title
+          workout_items: workoutDetails,
+          created_at: new Date()
+        };
+
+        const { data: insertedPost, error: postError } = await supabase.from('posts').insert(postPayload).select('id').single();
+        if (postError) {
+          console.error("Error posting to feed:", postError);
+        } else if (insertedPost) {
+          // Background AI analysis
+          analyzePost(insertedPost.id, activityName);
+        }
+      }
 
       showToast("Treino salvo com sucesso!", 'success');
 
       // Reset after save
+      setShowShareModal(false);
+      setActivityName('');
       if (mode === 'free') handleFreeReset();
       else resetInterval();
 
@@ -125,6 +171,13 @@ const StopwatchScreen: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Helper for text format
+  const formatTimeForPost = (ms: number) => {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}m ${seconds}s`;
   };
 
 
@@ -591,8 +644,9 @@ const StopwatchScreen: React.FC = () => {
                       </button>
                       {/* Save Button shows when stopped and has time */}
                       {time > 0 && (
-                        <button onClick={handleSaveWorkout} disabled={isSaving} className="w-16 h-16 rounded-full bg-cyan-100 text-cyan-600 border-2 border-cyan-200 hover:bg-cyan-200 flex items-center justify-center transition-all">
-                          {isSaving ? <Loader2 className="animate-spin" size={24} /> : <Save size={24} />}
+                        <button onClick={handleOpenSaveModal} className="px-6 py-4 rounded-full bg-cyan-100 text-cyan-700 font-bold border-2 border-cyan-200 hover:bg-cyan-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 transition-all shadow-sm">
+                          <Share2 size={20} />
+                          <span>Salvar / Compartilhar</span>
                         </button>
                       )}
                     </div>
@@ -613,8 +667,9 @@ const StopwatchScreen: React.FC = () => {
                       {intervalPhase === 'finished' ? <RotateCcw size={24} /> : <Settings2 size={24} />}
                     </button>
                     {intervalPhase === 'finished' && (
-                      <button onClick={handleSaveWorkout} disabled={isSaving} className="w-16 h-16 rounded-full bg-cyan-100 text-cyan-600 border-2 border-cyan-200 hover:bg-cyan-200 flex items-center justify-center transition-all">
-                        {isSaving ? <Loader2 className="animate-spin" size={24} /> : <Save size={24} />}
+                      <button onClick={handleOpenSaveModal} className="px-6 py-4 rounded-full bg-cyan-100 text-cyan-700 font-bold border-2 border-cyan-200 hover:bg-cyan-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 transition-all shadow-sm">
+                        <Share2 size={20} />
+                        <span>Salvar / Compartilhar</span>
                       </button>
                     )}
                   </div>
@@ -649,6 +704,60 @@ const StopwatchScreen: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* SHARE MODAL */}
+      {showShareModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl scale-100 border border-slate-100">
+            <h3 className="text-xl font-bold text-slate-800 mb-1">Salvar Treino</h3>
+            <p className="text-sm text-slate-400 mb-6">Registre sua conquista no histórico</p>
+
+            <div className="space-y-4">
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Atividade</label>
+                <input
+                  type="text"
+                  value={activityName}
+                  onChange={(e) => setActivityName(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-semibold text-slate-800 focus:outline-none focus:border-cyan-500 transition-colors"
+                  placeholder="Ex: Corrida Matinal"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 p-2">
+                <button
+                  onClick={() => setShouldPostToFeed(!shouldPostToFeed)}
+                  className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${shouldPostToFeed ? 'bg-cyan-500 border-cyan-500' : 'bg-transparent border-slate-300'}`}
+                >
+                  {shouldPostToFeed && <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                </button>
+                <span className="text-sm font-medium text-slate-600 cursor-pointer" onClick={() => setShouldPostToFeed(!shouldPostToFeed)}>
+                  Publicar no Feed
+                </span>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="flex-1 py-3.5 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmSave}
+                  disabled={isSaving || !activityName.trim()}
+                  className={`flex-1 py-3.5 font-bold rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex justify-center items-center gap-2 text-white
+                        ${shouldPostToFeed ? 'bg-gradient-to-r from-cyan-500 to-blue-600' : 'bg-slate-800'}
+                    `}
+                >
+                  {isSaving ? <Loader2 className="animate-spin" size={20} /> : (shouldPostToFeed ? <Share2 size={20} /> : <Save size={20} />)}
+                  {shouldPostToFeed ? 'Salvar e Publicar' : 'Apenas Salvar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,6 +3,8 @@ import { X, Camera, Ruler, Scale, Plus, Trash2, MessageSquare, Dumbbell, Smile, 
 import { PostModel } from '../types';
 import { compressImage, convertHeicToJpeg } from '../lib/imageUtils';
 import { useToast } from './Toast';
+import { supabase } from '../supabaseClient'; // Added for moderation
+import { moderateContent } from '../lib/openai'; // Import Moderation
 
 interface NewPostModalProps {
   isOpen: boolean;
@@ -24,6 +26,7 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ isOpen, onClose, onSave, po
   const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [caption, setCaption] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // Added for moderation loading state
 
   // Measurement Logic
   const [measurements, setMeasurements] = useState<{ part: string, value: string }[]>([]);
@@ -455,8 +458,10 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ isOpen, onClose, onSave, po
           {/* Action Button */}
           <button
             onClick={handleSave}
-            className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-2xl shadow-lg shadow-cyan-500/25 active:scale-[0.98] transition-all tracking-wide text-lg flex items-center justify-center gap-2"
+            disabled={isLoading}
+            className={`w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-2xl shadow-lg shadow-cyan-500/25 active:scale-[0.98] transition-all tracking-wide text-lg flex items-center justify-center gap-2 ${isLoading ? 'opacity-70 cursor-wait' : ''}`}
           >
+            {isLoading && <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>}
             {getButtonText()}
           </button>
         </div>

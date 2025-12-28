@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { PostModel, CommentModel } from '../types';
-import { MessageCircle, Share2, Ruler, Scale, Dumbbell, Quote, MoreHorizontal, Edit, Trash2, Calendar, EyeOff, Send, Reply, Copy, Check, Loader2, Trophy, Target, UserPlus } from 'lucide-react';
+import { MessageCircle, Share2, Ruler, Scale, Dumbbell, Quote, MoreHorizontal, Edit, Trash2, Calendar, EyeOff, Send, Reply, Copy, Check, Loader2, Trophy, Target, UserPlus, Flag } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useToast } from './Toast';
 
@@ -502,6 +502,31 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
                 </button>
               )}
 
+              {/* Report Button - Always visible for posts not owned by current user */}
+              {currentUser && currentUser.id !== post.userId && (
+                <button
+                  onClick={async () => {
+                    setShowMenu(false);
+                    try {
+                      const { error } = await supabase.from('reports').insert({
+                        post_id: post.id,
+                        reporter_id: currentUser.id,
+                        reason: 'Conteúdo impróprio'
+                      });
+                      if (error) throw error;
+                      showToast('Denúncia enviada. Obrigado!', 'success');
+                    } catch (err) {
+                      console.error('Report error:', err);
+                      showToast('Erro ao denunciar', 'error');
+                    }
+                  }}
+                  className="w-full flex items-center px-4 py-3 text-sm text-orange-600 hover:bg-orange-50 transition-colors font-medium border-t border-slate-100"
+                >
+                  <Flag size={16} className="mr-2" />
+                  Denunciar
+                </button>
+              )}
+
             </div>
           )}
         </div>
@@ -571,31 +596,33 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
 
           {/* Join Challenge Button (Only for other users, not owner) */}
           {currentUser && currentUser.id !== post.userId && post.challengeId && !post.caption?.includes('Concluído') && (
-            <button
-              onClick={handleJoinChallenge}
-              disabled={isJoiningChallenge || hasJoinedChallenge}
-              className={`w-full mt-2 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${hasJoinedChallenge
+            <div className="flex justify-end mt-2">
+              <button
+                onClick={handleJoinChallenge}
+                disabled={isJoiningChallenge || hasJoinedChallenge}
+                className={`py-2 px-4 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-sm ${hasJoinedChallenge
                   ? 'bg-green-100 text-green-700 cursor-default'
                   : 'bg-orange-500 hover:bg-orange-600 text-white active:scale-[0.98]'
-                }`}
-            >
-              {isJoiningChallenge ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Entrando...
-                </>
-              ) : hasJoinedChallenge ? (
-                <>
-                  <Check size={18} />
-                  Você está participando!
-                </>
-              ) : (
-                <>
-                  <UserPlus size={18} />
-                  Aderir ao Desafio
-                </>
-              )}
-            </button>
+                  }`}
+              >
+                {isJoiningChallenge ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Entrando...
+                  </>
+                ) : hasJoinedChallenge ? (
+                  <>
+                    <Check size={14} />
+                    Participando
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={14} />
+                    Aceitar Desafio
+                  </>
+                )}
+              </button>
+            </div>
           )}
         </div>
       )}

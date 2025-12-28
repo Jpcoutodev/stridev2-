@@ -15,6 +15,7 @@ import LegalScreen from './components/LegalScreen';
 import ChallengesScreen from './components/ChallengesScreen';
 import NewChallengeModal from './components/NewChallengeModal';
 import OnboardingScreen from './components/OnboardingScreen';
+import AdminScreen from './components/AdminScreen';
 import { useToast } from './components/Toast';
 import PostSkeleton from './components/PostSkeleton';
 import { Plus, Bell, Search, Home, Timer, User, Camera, Ruler, MessageSquare, Dumbbell, Apple, MessageCircle, ChefHat, Loader2, RefreshCw, Trophy, Target } from 'lucide-react';
@@ -30,7 +31,7 @@ const App: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Navigation State
-  const [currentView, setCurrentView] = useState<'home' | 'nutrition' | 'stopwatch' | 'profile' | 'search' | 'messages' | 'notifications' | 'recipes' | 'legal' | 'challenges'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'nutrition' | 'stopwatch' | 'profile' | 'search' | 'messages' | 'notifications' | 'recipes' | 'legal' | 'challenges' | 'admin'>('home');
 
   // Home Tab State
   const [activeTab, setActiveTab] = useState<'myStride' | 'community'>('myStride');
@@ -160,8 +161,12 @@ const App: React.FC = () => {
 
     if (data) {
       setUserProfile(data);
-      // Verificar se precisa mostrar onboarding (false, null ou undefined)
-      if (!data.onboarding_completed) {
+      // Admin redirect
+      if (data.is_admin === true) {
+        setCurrentView('admin');
+      }
+      // Verificar se precisa mostrar onboarding
+      else if (data.onboarding_completed === false) {
         setShowOnboarding(true);
       }
     }
@@ -563,11 +568,19 @@ const App: React.FC = () => {
         if (error) throw error;
       } else {
         // Insert
-        const { error } = await supabase
+        const { data: insertedPost, error } = await supabase
           .from('posts')
-          .insert(dbPayload);
+          .insert(dbPayload)
+          .select('id')
+          .single();
 
         if (error) throw error;
+
+        // Background AI moderation analysis
+        if (insertedPost) {
+          const { analyzePost } = await import('./lib/openai');
+          analyzePost(insertedPost.id, postData.caption, imageFile || undefined);
+        }
       }
 
       await fetchPosts(); // Refresh feed
@@ -844,6 +857,11 @@ const App: React.FC = () => {
     </>
   );
 
+  // Admin screen renders at full width (outside mobile container)
+  if (currentView === 'admin') {
+    return <AdminScreen onViewApp={() => setCurrentView('home')} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex justify-center">
       <div className="w-full max-w-md bg-white min-h-screen relative shadow-2xl flex flex-col">
@@ -893,6 +911,7 @@ const App: React.FC = () => {
         )}
         {currentView === 'recipes' && <RecipesScreen />}
         {currentView === 'challenges' && <ChallengesScreen onBack={() => setCurrentView('home')} />}
+        {currentView === 'admin' && <AdminScreen onViewApp={() => setCurrentView('home')} />}
         {currentView === 'legal' && <LegalScreen onBack={() => setCurrentView('home')} />}
 
         {/* Bottom Navigation */}

@@ -166,12 +166,18 @@ const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) => {
                             ? `${challenge.target_count} semana${challenge.target_count > 1 ? 's' : ''}`
                             : `${challenge.target_count} ${challenge.target_count > 1 ? 'meses' : 'mês'}`;
 
-                    await supabase.from('posts').insert({
+                    const { data: insertedPost } = await supabase.from('posts').insert({
                         user_id: session.user.id,
                         type: 'challenge',
                         caption: `🏆 Desafio Concluído!\n\n🎯 ${challenge.title}\n📅 ${frequencyText} por ${durationText}\n\n✅ Missão cumprida! 💪`,
                         challenge_id: challenge.id
-                    });
+                    }).select('id').single();
+
+                    // Background AI analysis
+                    if (insertedPost) {
+                        const { analyzePost } = await import('../lib/openai');
+                        analyzePost(insertedPost.id, `🏆 Desafio Concluído! 🎯 ${challenge.title}`);
+                    }
                     showToast('🏆 Parabéns! Desafio concluído!', 'success');
                 } else {
                     showToast(`🎉 Período completo! ${newCount}/${challenge.target_count}`, 'success');
