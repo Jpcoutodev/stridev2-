@@ -317,37 +317,23 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
     }
   };
 
-  // --- Date Formatting Logic for "Evolution" Highlight ---
+  // --- Date Formatting Logic - Simplified inline text ---
   const renderDateBadge = (isoDate: string) => {
     const date = new Date(isoDate);
     const now = new Date();
-    const isCurrentYear = date.getFullYear() === now.getFullYear();
+    const isToday = date.toDateString() === now.toDateString();
 
     const day = date.getDate();
     const month = date.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase().replace('.', '');
     const year = date.getFullYear();
+    const isCurrentYear = date.getFullYear() === now.getFullYear();
 
-    if (isCurrentYear) {
-      // CURRENT YEAR: Highlight Day and Month (Active, Fresh)
-      return (
-        <div className="flex flex-col items-end">
-          <span className="text-xs font-bold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-md uppercase tracking-wider border border-cyan-100">
-            {day} {month}
-          </span>
-        </div>
-      );
+    if (isToday) {
+      return <span className="text-xs text-slate-400 font-medium">Hoje</span>;
+    } else if (isCurrentYear) {
+      return <span className="text-xs text-slate-400 font-medium">{day} {month}</span>;
     } else {
-      // PAST YEAR: Highlight Year (History, Evolution, Vintage)
-      return (
-        <div className="flex flex-col items-end">
-          <div className="flex items-center space-x-1 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
-            <Calendar size={10} className="text-amber-700" />
-            <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest">
-              {month} {year}
-            </span>
-          </div>
-        </div>
-      );
+      return <span className="text-xs text-slate-400 font-medium">{day} {month} {year}</span>;
     }
   };
 
@@ -427,7 +413,21 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
   };
 
   return (
-    <div className="bg-white border-y border-slate-100 md:border md:rounded-3xl shadow-sm mb-3 md:mb-6 mx-0 md:mx-4 overflow-hidden relative">
+    <div className="bg-white border-y border-slate-100 md:border md:rounded-3xl shadow-sm mb-1 md:mb-6 mx-0 md:mx-4 overflow-hidden relative">
+
+      {/* Challenge Status Badge at Top */}
+      {post.type === 'challenge' && (
+        <div className={`px-4 py-2 flex items-center justify-between ${post.caption?.includes('Concluído') ? 'bg-emerald-50 border-b border-emerald-100' : 'bg-orange-50 border-b border-orange-100'}`}>
+          <div className="flex items-center gap-2">
+            <div className={`p-1.5 rounded-lg ${post.caption?.includes('Concluído') ? 'bg-emerald-500' : 'bg-orange-500'}`}>
+              <Trophy size={14} className="text-white" />
+            </div>
+            <span className={`text-xs font-bold uppercase tracking-wider ${post.caption?.includes('Concluído') ? 'text-emerald-700' : 'text-orange-700'}`}>
+              {post.caption?.includes('Concluído') ? '✅ Concluído' : '🔥 Em Andamento'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Shared Post Attribution */}
       {post.originalPost && post.sharedByUsername && (
@@ -449,12 +449,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
               className="w-10 h-10 rounded-full object-cover border-2 border-slate-100"
             />
             {/* Online status dot */}
-            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-lime-400 rounded-full border-2 border-white"></div>
+            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white"></div>
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-slate-900 hover:text-cyan-600 transition-colors">{post.username}</span>
-            {/* Replaced 'TimeAgo' with explicit Date Badge */}
-            {renderDateBadge(post.date)}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-slate-900 hover:text-emerald-600 transition-colors">{post.username}</span>
+              <span className="text-slate-300">·</span>
+              {renderDateBadge(post.date)}
+            </div>
           </div>
         </div>
 
@@ -627,26 +629,31 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
         </div>
       )}
 
-      {/* Action Bar */}
-      <div className="px-4 py-3 relative">
-        <div className="flex items-center space-x-5 mb-3">
-          <button
-            onClick={handleClap}
-            className={`transition-all duration-300 transform ${isAnimating ? 'scale-125' : 'scale-100'} focus:outline-none group`}
-          >
-            {/* Clap Emoji with filters for active state */}
-            <span className={`text-3xl block transition-all duration-300 ${hasClapped ? 'grayscale-0 drop-shadow-[0_0_15px_rgba(163,230,53,0.8)]' : 'grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100'}`}>
-              👏
-            </span>
-          </button>
+      {/* Action Bar - Compact Design */}
+      <div className="px-4 py-2">
+        <div className="flex items-center">
+          {/* Left: Clap, Comment icons with counters */}
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={handleClap}
+              className={`flex items-center gap-1.5 transition-all duration-300 ${isAnimating ? 'scale-110' : 'scale-100'} focus:outline-none group`}
+            >
+              <span className={`text-2xl transition-all duration-300 ${hasClapped ? 'grayscale-0' : 'grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100'}`}>
+                👏
+              </span>
+              <span className={`text-sm font-bold ${hasClapped ? 'text-emerald-600' : 'text-slate-500'}`}>{claps}</span>
+            </button>
 
-          <button
-            onClick={toggleComments}
-            className={`text-slate-800 focus:outline-none hover:text-cyan-600 transition-colors ${showComments ? 'text-cyan-600' : ''}`}
-          >
-            <MessageCircle size={28} />
-          </button>
+            <button
+              onClick={toggleComments}
+              className={`flex items-center gap-1.5 focus:outline-none hover:text-emerald-600 transition-colors ${showComments ? 'text-emerald-600' : 'text-slate-600'}`}
+            >
+              <MessageCircle size={22} />
+              <span className="text-sm font-bold text-slate-500">{comments.length}</span>
+            </button>
+          </div>
 
+          {/* Right: Share */}
           <div className="ml-auto relative">
             {showShareTooltip && (
               <div className="absolute bottom-full right-0 mb-2 bg-slate-800 text-white text-xs py-1 px-3 rounded-lg shadow-lg whitespace-nowrap animate-in fade-in zoom-in">
@@ -655,24 +662,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
             )}
             <button
               onClick={handleShare}
-              className="text-slate-800 focus:outline-none hover:text-cyan-600 transition-colors"
+              className="text-slate-600 focus:outline-none hover:text-emerald-600 transition-colors"
             >
-              <Share2 size={26} />
+              <Share2 size={22} />
             </button>
           </div>
         </div>
 
-        {/* Likes Count */}
-        <div className="font-bold text-sm mb-2 text-slate-900 flex items-center">
-          <span className="bg-lime-100 text-lime-700 text-[10px] px-1.5 py-0.5 rounded mr-2 uppercase tracking-wider font-bold">Aplausos</span>
-          {claps}
-        </div>
-
-
         {/* --- COMMENTS SECTION --- */}
         {/* Comment Preview (If hidden and comments exist) */}
         {!showComments && comments.length > 0 && (
-          <button onClick={toggleComments} className="mt-2 text-xs text-slate-400 font-semibold hover:text-slate-600 transition-colors">
+          <button onClick={toggleComments} className="mt-2 text-xs text-slate-400 font-semibold hover:text-emerald-600 transition-colors">
             Ver todos os {comments.length} comentários
           </button>
         )}

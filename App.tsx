@@ -755,7 +755,7 @@ const App: React.FC = () => {
               Meus Passos
             </span>
             {activeTab === 'myStride' && (
-              <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-lime-400 rounded-t-full mx-8 animate-in fade-in duration-300"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-emerald-500 rounded-t-full mx-8 animate-in fade-in duration-300"></div>
             )}
           </button>
 
@@ -767,7 +767,7 @@ const App: React.FC = () => {
               Comunidade
             </span>
             {activeTab === 'community' && (
-              <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-lime-400 rounded-t-full mx-8 animate-in fade-in duration-300"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-emerald-500 rounded-t-full mx-8 animate-in fade-in duration-300"></div>
             )}
           </button>
         </div>
@@ -894,7 +894,7 @@ const App: React.FC = () => {
 
         <button
           onClick={() => setIsFabMenuOpen(!isFabMenuOpen)}
-          className={`group flex items-center justify-center w-16 h-16 ${isFabMenuOpen ? 'bg-slate-800 rotate-45' : 'bg-lime-400 rotate-0'} text-slate-900 rounded-full shadow-xl shadow-lime-400/40 hover:scale-110 active:scale-95 transition-all duration-300 focus:outline-none ring-4 ring-white z-50`}
+          className={`group flex items-center justify-center w-16 h-16 ${isFabMenuOpen ? 'bg-slate-800 rotate-45' : 'bg-emerald-600 rotate-0'} text-white rounded-full shadow-2xl shadow-emerald-600/50 hover:scale-110 active:scale-95 transition-all duration-300 focus:outline-none ring-4 ring-white z-50`}
         >
           {isFabMenuOpen ? <Plus size={32} className="text-white" /> : <Plus size={32} strokeWidth={3} />}
         </button>
@@ -967,23 +967,23 @@ const App: React.FC = () => {
         {currentView === 'legal' && <LegalScreen onBack={() => setCurrentView('home')} />}
 
         {/* Bottom Navigation */}
-        <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-3.5 flex justify-between items-center z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        <div className="sticky bottom-0 bg-white border-t border-slate-100 px-4 py-2 flex justify-between items-center z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
           <button
             onClick={() => { setCurrentView('home'); setTargetProfileUser(null); setIsFoodMenuOpen(false); }}
-            className={`${currentView === 'home' ? 'text-cyan-600' : 'text-slate-400 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
+            className={`${currentView === 'home' ? 'text-emerald-600' : 'text-slate-400 hover:text-emerald-600'} transition-colors flex flex-col items-center gap-0.5 min-w-[50px]`}
           >
-            <Home size={26} strokeWidth={currentView === 'home' ? 2.5 : 2} />
-            {currentView === 'home' && <div className="w-1.5 h-1.5 bg-cyan-600 rounded-full"></div>}
+            <Home size={24} strokeWidth={currentView === 'home' ? 2.5 : 2} />
+            <span className="text-[10px] font-semibold">Início</span>
           </button>
 
           {/* Unified Food Button (Apple) */}
           <div className="relative">
             <button
               onClick={() => setIsFoodMenuOpen(!isFoodMenuOpen)}
-              className={`${currentView === 'nutrition' || currentView === 'recipes' ? 'text-lime-500' : 'text-slate-400 hover:text-lime-500'} transition-colors flex flex-col items-center gap-1`}
+              className={`${currentView === 'nutrition' || currentView === 'recipes' ? 'text-lime-500' : 'text-slate-400 hover:text-lime-500'} transition-colors flex flex-col items-center gap-0.5 min-w-[50px]`}
             >
-              <Apple size={26} strokeWidth={(currentView === 'nutrition' || currentView === 'recipes') ? 2.5 : 2} />
-              {(currentView === 'nutrition' || currentView === 'recipes') && <div className="w-1.5 h-1.5 bg-lime-500 rounded-full"></div>}
+              <Apple size={24} strokeWidth={(currentView === 'nutrition' || currentView === 'recipes') ? 2.5 : 2} />
+              <span className="text-[10px] font-semibold">Nutrição</span>
             </button>
 
             {/* Food Menu Popup */}
@@ -1011,22 +1011,22 @@ const App: React.FC = () => {
             )}
           </div>
 
-          <div className="w-10"></div> {/* Spacer for FAB */}
+          <div className="w-14"></div> {/* Spacer for FAB */}
 
           <button
             onClick={() => { setCurrentView('challenges'); setTargetProfileUser(null); setIsFoodMenuOpen(false); }}
-            className={`${currentView === 'challenges' ? 'text-orange-500' : 'text-slate-400 hover:text-orange-500'} transition-colors flex flex-col items-center gap-1`}
+            className={`${currentView === 'challenges' ? 'text-orange-500' : 'text-slate-400 hover:text-orange-500'} transition-colors flex flex-col items-center gap-0.5 min-w-[50px]`}
           >
-            <Trophy size={26} strokeWidth={currentView === 'challenges' ? 2.5 : 2} />
-            {currentView === 'challenges' && <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>}
+            <Trophy size={24} strokeWidth={currentView === 'challenges' ? 2.5 : 2} />
+            <span className="text-[10px] font-semibold">Desafios</span>
           </button>
 
           <button
             onClick={() => { setCurrentView('stopwatch'); setTargetProfileUser(null); setIsFoodMenuOpen(false); }}
-            className={`${currentView === 'stopwatch' ? 'text-cyan-600' : 'text-slate-400 hover:text-cyan-600'} transition-colors flex flex-col items-center gap-1`}
+            className={`${currentView === 'stopwatch' ? 'text-emerald-600' : 'text-slate-400 hover:text-emerald-600'} transition-colors flex flex-col items-center gap-0.5 min-w-[50px]`}
           >
-            <Timer size={26} strokeWidth={currentView === 'stopwatch' ? 2.5 : 2} />
-            {currentView === 'stopwatch' && <div className="w-1.5 h-1.5 bg-cyan-600 rounded-full"></div>}
+            <Timer size={24} strokeWidth={currentView === 'stopwatch' ? 2.5 : 2} />
+            <span className="text-[10px] font-semibold">Crono</span>
           </button>
 
         </div>
