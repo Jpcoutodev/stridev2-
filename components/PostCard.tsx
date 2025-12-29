@@ -708,27 +708,27 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
             </div>
 
             {/* Comment Input */}
-            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-full border border-slate-200 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-100 transition-all">
+            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-3xl border border-slate-200 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-100 transition-all w-full">
               <img
                 src={currentUser?.avatar_url || "https://via.placeholder.com/150"}
                 alt="Current User"
-                className="w-8 h-8 rounded-full border border-white shadow-sm object-cover"
+                className="w-8 h-8 rounded-full border border-white shadow-sm object-cover flex-shrink-0"
               />
               <input
                 ref={commentInputRef}
                 type="text"
                 value={commentInput}
                 onChange={(e) => setCommentInput(e.target.value)}
-                placeholder="Adicione um comentário..."
-                className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none px-2 font-medium"
+                placeholder="Comentar..."
+                className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none px-2 font-medium min-w-0"
                 onKeyDown={(e) => e.key === 'Enter' && handleSendComment()}
               />
               <button
                 onClick={handleSendComment}
                 disabled={!commentInput.trim()}
-                className={`p-2 rounded-full transition-all flex-shrink-0 ${commentInput.trim() ? 'bg-cyan-500 text-white hover:bg-cyan-600 shadow-md transform hover:scale-105' : 'bg-slate-200 text-slate-400'}`}
+                className={`w-9 h-9 flex items-center justify-center rounded-full transition-all flex-shrink-0 shadow-sm ${commentInput.trim() ? 'bg-cyan-500 text-white hover:bg-cyan-600 scale-100' : 'bg-slate-200 text-slate-400 scale-95'}`}
               >
-                <Send size={18} fill={commentInput.trim() ? "currentColor" : "none"} />
+                <Send size={16} fill={commentInput.trim() ? "currentColor" : "none"} className={commentInput.trim() ? "ml-0.5" : ""} />
               </button>
             </div>
           </div>

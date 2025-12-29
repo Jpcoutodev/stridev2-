@@ -96,13 +96,12 @@ const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) => {
         }
     };
 
-    const handleDelete = async (challengeId: string) => {
-        if (deletingId) return;
-        if (!window.confirm('Tem certeza que deseja excluir este desafio? Os posts relacionados também serão removidos.')) return;
-
+    const handleDelete = (challengeId: string) => {
         setDeletingId(challengeId);
         setShowMenuId(null);
+    };
 
+    const confirmDelete = async (challengeId: string) => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Não autenticado');
@@ -356,6 +355,35 @@ const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) => {
             </button>
 
             <NewChallengeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={fetchChallenges} />
+
+            {/* DELETE CONFIRMATION MODAL */}
+            {deletingId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white w-full max-w-xs rounded-3xl overflow-hidden shadow-2xl p-6 border border-slate-100 animate-in zoom-in-95 duration-200 text-center">
+                        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Trash2 size={24} className="text-red-500" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-2">Excluir desafio?</h3>
+                        <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                            Todos os posts e check-ins vinculados a este desafio também serão removidos.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setDeletingId(null)}
+                                className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={() => confirmDelete(deletingId)}
+                                className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 shadow-lg shadow-red-500/20 transition-colors"
+                            >
+                                Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

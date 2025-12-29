@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Utensils, ChevronRight, Flame, Plus, ScanLine, Edit2, Check, X, Clock, ChevronDown, Loader2, Sparkles, Image as ImageIcon, Mic, MicOff, Calendar, Share2 } from 'lucide-react';
+import { Camera, Utensils, ChevronRight, Flame, Plus, ScanLine, Edit2, Check, X, Clock, ChevronDown, Loader2, Sparkles, Image as ImageIcon, Mic, MicOff, Calendar, Share2, Trash2 } from 'lucide-react';
 import { analyzeFood } from '../lib/openai';
 import { supabase } from '../supabaseClient';
 import { compressImage, fileToBase64 } from '../lib/imageUtils';
@@ -162,8 +162,18 @@ const NutritionScreen: React.FC = () => {
         // Optional: Save target to profiles table here
     };
 
-    const handleDeleteMeal = async (mealId: string) => {
-        if (!confirm('Tem certeza que deseja remover esta refeição?')) return;
+    const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
+
+    // ... (existing code)
+
+    const handleDeleteMeal = (mealId: string) => {
+        setDeleteConfirmationId(mealId);
+    };
+
+    const confirmDeleteMeal = async () => {
+        if (!deleteConfirmationId) return;
+        const mealId = deleteConfirmationId;
+        setDeleteConfirmationId(null); // Close modal immediately
 
         try {
             const { error } = await supabase
@@ -177,7 +187,6 @@ const NutritionScreen: React.FC = () => {
             setMeals(prev => prev.filter(m => m.id !== mealId));
 
             // Also refresh history to update the chart
-            // We can optimize this by locally updating history, but fetching is safer
             fetchHistory();
 
             showToast('Refeição removida.', 'success');
@@ -575,6 +584,37 @@ const NutritionScreen: React.FC = () => {
                 </div>
 
             </div>
+
+            {/* ======================================== */}
+            {/* DELETE CONFIRMATION MODAL                */}
+            {/* ======================================== */}
+            {deleteConfirmationId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white w-full max-w-xs rounded-3xl overflow-hidden shadow-2xl p-6 border border-slate-100 animate-in zoom-in-95 duration-200 text-center">
+                        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Trash2 size={24} className="text-red-500" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-2">Remover refeição?</h3>
+                        <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                            Essa ação não pode ser desfeita e afetará seu histórico diário.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setDeleteConfirmationId(null)}
+                                className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmDeleteMeal}
+                                className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 shadow-lg shadow-red-500/20 transition-colors"
+                            >
+                                Remover
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ======================================== */}
             {/* MANUAL MEAL MODAL                        */}

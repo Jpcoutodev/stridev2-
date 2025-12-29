@@ -19,7 +19,11 @@ import AdminScreen from './components/AdminScreen';
 import DeleteAccountScreen from './components/DeleteAccountScreen';
 import { useToast } from './components/Toast';
 import PostSkeleton from './components/PostSkeleton';
-import { Plus, Bell, Search, Home, Timer, User, Camera, Ruler, MessageSquare, Dumbbell, Apple, MessageCircle, ChefHat, Loader2, RefreshCw, Trophy, Target } from 'lucide-react';
+import {
+  Plus, Bell, Search, MessageCircle, User, Home, Mic, MicOff, Trophy, Calendar, Target,
+  Zap, Clock, Timer, MessageSquare, Heart, Share2, MoreVertical, X, LogOut, Trash2, Settings, UserMinus,
+  Camera, Ruler, Dumbbell, Apple, ChefHat, Loader2, RefreshCw
+} from 'lucide-react';
 import { supabase } from './supabaseClient';
 
 const App: React.FC = () => {
@@ -544,9 +548,17 @@ const App: React.FC = () => {
     }
   };
 
+  const [blockConfirmationUser, setBlockConfirmationUser] = useState<string | null>(null);
+
   const handleBlockUser = (username: string) => {
-    if (confirm(`Deseja deixar de ver as publicações de ${username}?`)) {
-      setCommunityPostList(prev => prev.filter(p => p.username !== username));
+    setBlockConfirmationUser(username);
+  };
+
+  const confirmBlockUser = () => {
+    if (blockConfirmationUser) {
+      setCommunityPostList(prev => prev.filter(p => p.username !== blockConfirmationUser));
+      showToast(`Você deixou de ver publicações de ${blockConfirmationUser}`, 'success');
+      setBlockConfirmationUser(null);
     }
   };
 
@@ -645,17 +657,25 @@ const App: React.FC = () => {
 
   // --- EARLY RETURN: AUTH SCREEN ---
   if (!isAuthenticated) {
-    // If legal screen is requested, show it, otherwise show auth
-    if (currentView === 'legal') {
-      return <LegalScreen onBack={() => setCurrentView('home')} initialTab={initialLegalTab} />;
-    }
     if (currentView === 'delete_account') {
       return <DeleteAccountScreen onBack={() => {
         window.history.replaceState({}, '', window.location.pathname); // Clean URL
         setCurrentView('home');
       }} />;
     }
-    return <AuthScreen onLogin={handleLogin} onOpenLegal={() => setCurrentView('legal')} />;
+
+    // Keep AuthScreen mounted to preserve form state (email, password) when viewing legal docs
+    return (
+      <>
+        <div style={{ display: currentView === 'legal' ? 'none' : 'block', height: '100vh' }}>
+          <AuthScreen onLogin={handleLogin} onOpenLegal={() => setCurrentView('legal')} />
+        </div>
+
+        {currentView === 'legal' && (
+          <LegalScreen onBack={() => setCurrentView('home')} initialTab={initialLegalTab} />
+        )}
+      </>
+    );
   }
 
   // --- ONBOARDING OVERLAY ---
@@ -1026,6 +1046,35 @@ const App: React.FC = () => {
           onClose={() => setIsChallengeModalOpen(false)}
           onSave={() => fetchPosts()}
         />
+
+        {/* BLOCK USER CONFIRMATION MODAL */}
+        {blockConfirmationUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-xs rounded-3xl overflow-hidden shadow-2xl p-6 border border-slate-100 animate-in zoom-in-95 duration-200 text-center">
+              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <UserMinus size={24} className="text-orange-500" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Bloquear Usuário?</h3>
+              <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                Você deixará de ver as publicações de <strong>{blockConfirmationUser}</strong> no feed da comunidade.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setBlockConfirmationUser(null)}
+                  className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmBlockUser}
+                  className="flex-1 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-colors"
+                >
+                  Bloquear
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
