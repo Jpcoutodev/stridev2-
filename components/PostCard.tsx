@@ -577,57 +577,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
         </div>
       )}
 
-      {/* Challenge Section (Visible if type is challenge) */}
-      {post.type === 'challenge' && (
-        <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 border-t border-b border-orange-100/50">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="bg-orange-500 p-1.5 rounded-lg">
-              <Trophy size={16} className="text-white" />
-            </div>
-            <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">Desafio</span>
-            {post.caption?.includes('Concluído') ? (
-              <span className="ml-auto bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase">
-                ✅ Concluído
-              </span>
-            ) : (
-              <span className="ml-auto bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase">
-                🔥 Em andamento
-              </span>
-            )}
-          </div>
 
-          {/* Join Challenge Button (Only for other users, not owner) */}
-          {currentUser && currentUser.id !== post.userId && post.challengeId && !post.caption?.includes('Concluído') && (
-            <div className="flex justify-end mt-2">
-              <button
-                onClick={handleJoinChallenge}
-                disabled={isJoiningChallenge || hasJoinedChallenge}
-                className={`py-2 px-4 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-sm ${hasJoinedChallenge
-                  ? 'bg-green-100 text-green-700 cursor-default'
-                  : 'bg-orange-500 hover:bg-orange-600 text-white active:scale-[0.98]'
-                  }`}
-              >
-                {isJoiningChallenge ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Entrando...
-                  </>
-                ) : hasJoinedChallenge ? (
-                  <>
-                    <Check size={14} />
-                    Participando
-                  </>
-                ) : (
-                  <>
-                    <UserPlus size={14} />
-                    Aceitar Desafio
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Action Bar - Compact Design */}
       <div className="px-4 py-2">

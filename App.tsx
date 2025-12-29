@@ -967,7 +967,7 @@ const App: React.FC = () => {
         {currentView === 'legal' && <LegalScreen onBack={() => setCurrentView('home')} />}
 
         {/* Bottom Navigation */}
-        <div className="sticky bottom-0 bg-white border-t border-slate-100 px-4 py-2 flex justify-between items-center z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        <div className={`sticky bottom-0 bg-white border-t border-slate-100 px-4 py-2 flex justify-between items-center z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-in-out ${showHeader ? 'translate-y-0' : 'translate-y-full'}`}>
           <button
             onClick={() => { setCurrentView('home'); setTargetProfileUser(null); setIsFoodMenuOpen(false); }}
             className={`${currentView === 'home' ? 'text-emerald-600' : 'text-slate-400 hover:text-emerald-600'} transition-colors flex flex-col items-center gap-0.5 min-w-[50px]`}
