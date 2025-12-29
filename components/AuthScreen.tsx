@@ -125,30 +125,29 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onOpenLegal }) => {
 
                 // Manual profile creation backup (if trigger fails or doesn't exist)
                 if (data.user) {
+                    // First, try to insert the profile
                     const { error: profileError } = await supabase.from('profiles').insert({
                         id: data.user.id,
                         full_name: name,
                         username: handle,
                         location: city,
                         birth_date: dobIso || null,
-                        avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200'
-                    });
-                    if (profileError) {
-                        // Ignore duplicate key error (if trigger worked)
-                        if (profileError.code !== '23505') {
-                            console.error("Profile creation error", profileError);
-                        }
-                    }
-
-                    // Force onboarding flag to false to ensure valid redirection
-                    await supabase.from('profiles').upsert({
-                        id: data.user.id,
+                        avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200',
                         onboarding_completed: false
-                    }, { onConflict: 'id', ignoreDuplicates: false });
+                    });
+
+                    // If insert failed due to duplicate (trigger worked), update to ensure onboarding flag
+                    if (profileError && profileError.code === '23505') {
+                        await supabase.from('profiles').update({
+                            onboarding_completed: false
+                        }).eq('id', data.user.id);
+                    } else if (profileError) {
+                        console.error("Profile creation error", profileError);
+                    }
                 }
 
-                showToast('Cadastro realizado! Se o login não for automático, faça login agora.', 'success');
-                setIsLoginMode(true);
+                showToast('Cadastro realizado! Redirecionando...', 'success');
+                // Don't switch to login mode, let the auth state change handle the flow
             }
         } catch (error: any) {
             setErrorMessage(error.message || 'Ocorreu um erro.');
