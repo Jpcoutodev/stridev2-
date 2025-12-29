@@ -663,25 +663,14 @@ const App: React.FC = () => {
   const renderHomeContent = () => (
     <>
       {/* Top App Bar & Tabs */}
-      <header className={`sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 flex flex-col transition-transform duration-300 ease-in-out ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
+      <header className={`sticky top-0 z-30 bg-[#fdfdfc] border-b border-gray-100 flex flex-col transition-transform duration-300 ease-in-out ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="px-5 pt-4 pb-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-cyan-500/20 bg-slate-900 transition-transform hover:scale-105">
-              <img
-                src="https://qgbxduvipeadycxremqa.supabase.co/storage/v1/object/public/logo/logos/logo%203.png"
-                alt="Stride Up"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  if (e.currentTarget.parentElement) {
-                    e.currentTarget.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-cyan-400 font-bold italic text-lg tracking-tighter">SU</div>';
-                  }
-                }}
-              />
-            </div>
-            <h1 className="text-2xl font-bold italic tracking-tight text-slate-900">
-              Stride Up
-            </h1>
+          <div className="flex items-center">
+            <img
+              src="/logo-strideup.png"
+              alt="Stride Up"
+              className="h-10 object-contain"
+            />
           </div>
           <div className="flex space-x-2">
             <button
@@ -735,7 +724,7 @@ const App: React.FC = () => {
             className="flex-1 relative pb-3 text-center focus:outline-none transition-colors"
           >
             <span className={`text-sm font-bold tracking-wide ${activeTab === 'myStride' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}>
-              My Strides
+              Meus Passos
             </span>
             {activeTab === 'myStride' && (
               <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-lime-400 rounded-t-full mx-8 animate-in fade-in duration-300"></div>

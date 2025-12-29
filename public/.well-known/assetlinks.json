@@ -1,0 +1,15 @@
+[
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls",
+            "delegate_permission/common.get_login_creds"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "app.strideup_fit.twa",
+            "sha256_cert_fingerprints": [
+                "87:F4:B1:40:1D:CE:DB:15:21:C5:2F:4E:66:9E:D1:07:15:17:06:57:6B:C1:30:24:62:E6:7F:87:C6:3D:02:F8"
+            ]
+        }
+    }
+]
