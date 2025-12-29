@@ -162,6 +162,31 @@ const NutritionScreen: React.FC = () => {
         // Optional: Save target to profiles table here
     };
 
+    const handleDeleteMeal = async (mealId: string) => {
+        if (!confirm('Tem certeza que deseja remover esta refeição?')) return;
+
+        try {
+            const { error } = await supabase
+                .from('meals')
+                .delete()
+                .eq('id', mealId);
+
+            if (error) throw error;
+
+            // Remove from local state (triggers recalculation)
+            setMeals(prev => prev.filter(m => m.id !== mealId));
+
+            // Also refresh history to update the chart
+            // We can optimize this by locally updating history, but fetching is safer
+            fetchHistory();
+
+            showToast('Refeição removida.', 'success');
+        } catch (err: any) {
+            console.error("Error deleting meal:", err);
+            showToast('Erro ao remover refeição.', 'error');
+        }
+    };
+
     const handleAddMeal = async () => {
         if (!newMealName || !newMealCalories) return;
 
@@ -174,7 +199,7 @@ const NutritionScreen: React.FC = () => {
                 meal_type: newMealType,
                 name: newMealName,
                 calories: parseInt(newMealCalories),
-                date: new Date().toISOString().split('T')[0] // Today
+                date: getBrazilDate() // FIXED: Use Brazil Date instead of UTC
             };
 
             const { data, error } = await supabase
@@ -187,11 +212,13 @@ const NutritionScreen: React.FC = () => {
 
             if (data) {
                 setMeals(prev => [...prev, data]);
+                fetchHistory(); // Update history chart immediately
             }
 
             // Reset and Close
             setNewMealName('');
             setNewMealCalories('');
+            setFoodDescription(''); // Reset description
             setAnalysisImage(null);
             setAnalysisResult(null);
             setIsAddModalOpen(false);
@@ -201,8 +228,6 @@ const NutritionScreen: React.FC = () => {
             showToast('Erro ao salvar refeição: ' + err.message, 'error');
         }
     };
-
-
 
     // --- GEMINI AI INTEGRATION ---
 
@@ -381,6 +406,7 @@ const NutritionScreen: React.FC = () => {
                     onClick={() => {
                         setNewMealName('');
                         setNewMealCalories('');
+                        setFoodDescription(''); // Reset description
                         setAnalysisImage(null);
                         setAnalysisResult(null);
                         setIsAnalyzeModalOpen(true);
@@ -410,7 +436,7 @@ const NutritionScreen: React.FC = () => {
                         {loading ? (
                             <div className="flex justify-center py-4"><Loader2 className="animate-spin text-cyan-600" /></div>
                         ) : meals.map((meal) => (
-                            <div key={meal.id} className="bg-white p-4 rounded-2xl flex items-center justify-between border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div key={meal.id} className="bg-white p-4 rounded-2xl flex items-center justify-between border border-slate-100 shadow-sm hover:shadow-md transition-shadow group">
                                 <div className="flex items-center gap-4">
                                     <div className={`p-2.5 rounded-xl border ${getMealIconColor(meal.meal_type)}`}>
                                         <Utensils size={20} />
@@ -420,7 +446,17 @@ const NutritionScreen: React.FC = () => {
                                         <span className="text-xs text-slate-500 font-medium">{meal.name}</span>
                                     </div>
                                 </div>
-                                <span className="font-mono font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-md text-sm border border-slate-100">{meal.calories} kcal</span>
+                                <div className="flex items-center gap-3">
+                                    <span className="font-mono font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-md text-sm border border-slate-100">{meal.calories} kcal</span>
+                                    <button
+                                        onClick={() => handleDeleteMeal(meal.id)}
+                                        className="text-slate-300 hover:text-red-500 transition-colors p-1"
+                                        title="Excluir refeição"
+                                    >
+                                        <span className="sr-only">Excluir</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+                                    </button>
+                                </div>
                             </div>
                         ))}
 

@@ -726,9 +726,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
               <button
                 onClick={handleSendComment}
                 disabled={!commentInput.trim()}
-                className={`p-2 rounded-full transition-all ${commentInput.trim() ? 'bg-cyan-500 text-white hover:bg-cyan-600' : 'text-slate-300'}`}
+                className={`p-2 rounded-full transition-all flex-shrink-0 ${commentInput.trim() ? 'bg-cyan-500 text-white hover:bg-cyan-600 shadow-md transform hover:scale-105' : 'bg-slate-200 text-slate-400'}`}
               >
-                <Send size={16} fill={commentInput.trim() ? "currentColor" : "none"} />
+                <Send size={18} fill={commentInput.trim() ? "currentColor" : "none"} />
               </button>
             </div>
           </div>

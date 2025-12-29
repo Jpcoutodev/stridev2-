@@ -181,7 +181,7 @@ const App: React.FC = () => {
   }, [session?.user?.id]);
 
   // -- DATA FETCHING --
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, retryCount = 0) => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -190,16 +190,24 @@ const App: React.FC = () => {
 
     if (data) {
       setUserProfile(data);
-      // Admin redirect
+      console.log('Profile loaded:', { id: data.id, onboarding_completed: data.onboarding_completed, is_admin: data.is_admin });
+
       if (data.is_admin === true) {
         setCurrentView('admin');
       }
-      // Verificar se precisa mostrar onboarding
-      else if (data.onboarding_completed === false) {
+      else if (data.onboarding_completed !== true) {
+        console.log('Showing onboarding, onboarding_completed:', data.onboarding_completed);
         setShowOnboarding(true);
       }
+    } else {
+      // Se não achou o perfil (comum em cadastros novos devido a delay), tenta de novo
+      if (retryCount < 3) {
+        console.log(`Profile not found, retrying in 1s... (Attempt ${retryCount + 1}/3)`);
+        setTimeout(() => fetchUserProfile(userId, retryCount + 1), 1000);
+      } else {
+        console.error('Error fetching profile after retries:', error);
+      }
     }
-    if (error) console.error('Error fetching profile:', error);
   };
 
   const fetchUnreadNotificationsCount = async (userId: string) => {
