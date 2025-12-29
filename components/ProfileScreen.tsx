@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, User, Lock, Globe, Save, Ruler, Weight, MapPin, Loader2, LogOut, AtSign, AlertCircle, Target } from 'lucide-react';
+import { Camera, User, Lock, Globe, Save, Ruler, Weight, MapPin, Loader2, LogOut, AtSign, AlertCircle, Target, Trash2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { compressImage, convertHeicToJpeg } from '../lib/imageUtils';
 import { useToast } from './Toast';
@@ -16,6 +16,64 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
     const [initialUsername, setInitialUsername] = useState('');
+
+    // Delete Account State
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+    const handleDeleteAccount = async () => {
+        setIsDeletingAccount(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            const userId = session.user.id;
+
+            // 1. Delete Related Data (Best Effort)
+            // Note: If RLS or FK constraints prevent this, we might need a backend edge function.
+            // But we will try to clean up what we can from the client correctly.
+
+            // Delete Posts (Cascade usually handles comments/likes, but we explicit just in case or if cascade missing)
+            await supabase.from('posts').delete().eq('user_id', userId);
+
+            // Delete Meals
+            await supabase.from('meals').delete().eq('user_id', userId);
+
+            // Delete Challenges (Creator)
+            await supabase.from('challenges').delete().eq('user_id', userId);
+
+            // Delete Participate/Checkins (Cascade should handle, but explicit if needed)
+            await supabase.from('challenge_participants').delete().eq('user_id', userId);
+
+            // Delete Messages/Conversations is tricky due to FKs. 
+            // We usually let the database handle cascade for 'profiles' delete.
+            // But let's try to delete the profile primarily.
+
+            // 2. Delete Profile
+            const { error: profileError } = await supabase.from('profiles').delete().eq('id', userId);
+
+            if (profileError) {
+                console.error("Profile delete error:", profileError);
+                // If profile delete fails (e.g. FK constraint), we inform user to contact support
+                // checking for specific FK codes could be good, but generic error also works.
+                if (profileError.code?.startsWith('23')) { // FK violation
+                    throw new Error('Não foi possível excluir todos os dados automaticamente devido a vínculos ativos. Por favor, contate o suporte para exclusão manual.');
+                }
+                throw profileError;
+            }
+
+            // 3. Sign Out (Use standard logout flow)
+            showToast('Sua conta foi excluída permanentemente.', 'success');
+            setTimeout(() => {
+                onLogout(); // This triggers supabase.auth.signOut() in App.tsx
+            }, 1000);
+
+        } catch (error: any) {
+            console.error('Error deleting account:', error);
+            showToast(error.message || 'Erro ao excluir conta.', 'error');
+            setIsDeletingAccount(false);
+            setIsDeleteModalOpen(false); // Close modal on error to let user retry or see UI
+        }
+    };
 
     // State matches 'profiles' table columns
     const [profile, setProfile] = useState({
@@ -462,12 +520,63 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
                 {/* Logout */}
                 <button
                     onClick={onLogout}
-                    className="w-full py-3 text-red-500 font-semibold text-sm hover:bg-red-50 rounded-xl transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-3 text-slate-500 font-semibold text-sm hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                     <LogOut size={16} />
                     Sair da Conta
                 </button>
+
+                {/* Delete Account */}
+                <button
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    className="w-full py-3 text-red-500 font-semibold text-sm hover:bg-red-50 rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                    <Trash2 size={16} />
+                    Excluir Conta e Dados
+                </button>
             </div>
+
+            {/* DELETE ACCOUNT CONFIRMATION MODAL */}
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl p-6 border border-slate-100 animate-in zoom-in-95 duration-200 text-center">
+                        <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <AlertCircle size={28} className="text-red-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">Excluir Conta Permanentemente?</h3>
+                        <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                            Essa ação é <strong>irreversível</strong>. Todos os seus posts, comentários, refeições, desafios e informações de perfil serão apagados para sempre.
+                        </p>
+
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={handleDeleteAccount}
+                                disabled={isDeletingAccount}
+                                className="w-full py-3.5 rounded-xl bg-red-600 text-white font-bold text-sm hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                            >
+                                {isDeletingAccount ? (
+                                    <>
+                                        <Loader2 size={18} className="animate-spin" />
+                                        Apagando Dados...
+                                    </>
+                                ) : (
+                                    'Sim, Excluir Tudo'
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setIsDeleteModalOpen(false)}
+                                disabled={isDeletingAccount}
+                                className="w-full py-3.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-4">
+                            Você será desconectado imediatamente após a exclusão.
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

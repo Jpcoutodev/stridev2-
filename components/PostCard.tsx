@@ -427,7 +427,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete, onEdit, onBlockUser
   };
 
   return (
-    <div className="bg-white border border-slate-100 rounded-3xl shadow-sm mb-6 mx-4 overflow-hidden relative">
+    <div className="bg-white border-y border-slate-100 md:border md:rounded-3xl shadow-sm mb-3 md:mb-6 mx-0 md:mx-4 overflow-hidden relative">
 
       {/* Shared Post Attribution */}
       {post.originalPost && post.sharedByUsername && (
