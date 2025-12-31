@@ -7,9 +7,10 @@ import { useToast } from './Toast';
 interface ProfileScreenProps {
     onLogout: () => void;
     onUpdate?: () => void;
+    onOpenFollowers?: (tab: 'followers' | 'following') => void;
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => {
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate, onOpenFollowers }) => {
     const { showToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -319,12 +320,18 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, onUpdate }) => 
                             <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Treinos</span>
                         </div>
                         <div className="w-px h-8 bg-slate-200"></div>
-                        <div className="flex flex-col items-center">
+                        <div
+                            className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity active:scale-95"
+                            onClick={() => onOpenFollowers?.('followers')}
+                        >
                             <span className="text-xl font-bold text-slate-800">{profile.followers || 0}</span>
                             <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Seguidores</span>
                         </div>
                         <div className="w-px h-8 bg-slate-200"></div>
-                        <div className="flex flex-col items-center">
+                        <div
+                            className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity active:scale-95"
+                            onClick={() => onOpenFollowers?.('following')}
+                        >
                             <span className="text-xl font-bold text-slate-800">{profile.following || 0}</span>
                             <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Seguindo</span>
                         </div>

@@ -6,6 +6,7 @@ interface NotificationsScreenProps {
     onBack: () => void;
     onUserClick: (username: string) => void;
     onNotificationClick?: (notif: any) => void;
+    onMarkAsRead?: () => void;
 }
 
 interface Notification {
@@ -38,7 +39,7 @@ interface FollowRequest {
     };
 }
 
-const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUserClick, onNotificationClick }) => {
+const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUserClick, onNotificationClick, onMarkAsRead }) => {
     const [loading, setLoading] = useState(true);
     const [requests, setRequests] = useState<FollowRequest[]>([]);
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -124,14 +125,8 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUse
             const aggregated = aggregateNotifications((notifData as any) || []);
             setNotifications(aggregated);
 
-            // 3. Mark all as read
-            if (notifData && notifData.some(n => !n.is_read)) {
-                await supabase
-                    .from('notifications')
-                    .update({ is_read: true })
-                    .eq('user_id', session.user.id)
-                    .eq('is_read', false);
-            }
+            // Note: We don't mark all as read automatically anymore
+            // Notifications are marked as read individually when clicked
 
         } catch (error) {
             console.error('Error fetching notifications:', error);
@@ -266,7 +261,26 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onUse
                                 notif={notif}
                                 formatTime={formatTime}
                                 onUserClick={onUserClick}
-                                onNotificationClick={onNotificationClick}
+                                onNotificationClick={async (n) => {
+                                    // Mark as read if not already
+                                    if (!n.is_read && currentUserId) {
+                                        await supabase
+                                            .from('notifications')
+                                            .update({ is_read: true })
+                                            .eq('id', n.id);
+
+                                        // Update local state
+                                        setNotifications(prev => prev.map(notif =>
+                                            notif.id === n.id ? { ...notif, is_read: true } : notif
+                                        ));
+
+                                        // Notify parent to update badge count
+                                        onMarkAsRead?.();
+                                    }
+
+                                    // Then execute the original click handler
+                                    onNotificationClick?.(n);
+                                }}
                             />
                         ))
                     ) : (
@@ -337,9 +351,13 @@ const NotificationItem: React.FC<{ notif: any, formatTime: (d: string) => string
 
     return (
         <div
-            className="flex items-center gap-3 p-3 rounded-2xl hover:bg-white transition-colors cursor-pointer active:scale-[0.99]"
+            className={`flex items-center gap-3 p-3 rounded-2xl transition-colors cursor-pointer active:scale-[0.99] ${!notif.is_read ? 'bg-cyan-50/70 hover:bg-cyan-50' : 'hover:bg-white'}`}
             onClick={() => onNotificationClick ? onNotificationClick(notif) : onUserClick(notif.actor?.username)}
         >
+            {/* Unread indicator dot */}
+            {!notif.is_read && (
+                <div className="w-2 h-2 bg-cyan-500 rounded-full flex-shrink-0 animate-pulse" />
+            )}
             <div className="relative flex-shrink-0">
                 <img
                     src={notif.actor?.avatar_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop'}

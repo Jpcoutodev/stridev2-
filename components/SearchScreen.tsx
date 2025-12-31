@@ -22,9 +22,10 @@ interface SearchScreenProps {
     targetUsername?: string | null;
     onBack?: () => void;
     onMessageClick?: (userId: string) => void;
+    onOpenFollowers?: (userId: string, username: string, tab: 'followers' | 'following') => void;
 }
 
-const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack, onMessageClick }) => {
+const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack, onMessageClick, onOpenFollowers }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(false);
@@ -118,7 +119,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack, onM
         return result;
     };
 
-    const fetchUserPosts = async (userId: string) => {
+    const fetchUserPosts = async (userId: string, username: string, avatarUrl: string) => {
         const { data } = await supabase
             .from('posts')
             .select('*')
@@ -130,8 +131,8 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack, onM
                 id: p.id,
                 userId: p.user_id,
                 type: p.type,
-                username: selectedUser?.username || '',
-                userAvatar: selectedUser?.avatar_url || '',
+                username: username,
+                userAvatar: avatarUrl || 'https://via.placeholder.com/150',
                 date: p.created_at,
                 clapCount: p.clap_count || 0,
                 caption: p.caption,
@@ -152,7 +153,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack, onM
                 if (data) {
                     const counts = await fetchUserCounts(data.id);
                     setSelectedUser({ ...data, ...counts });
-                    fetchUserPosts(data.id);
+                    fetchUserPosts(data.id, data.username, data.avatar_url);
                 }
             } else {
                 setSelectedUser(null);
@@ -316,12 +317,18 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack, onM
                                 <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Posts</span>
                             </div>
                             <div className="w-px h-6 bg-slate-200"></div>
-                            <div className="flex flex-col items-center">
+                            <div
+                                className={`flex flex-col items-center ${canViewContent ? 'cursor-pointer hover:opacity-70 transition-opacity active:scale-95' : ''}`}
+                                onClick={() => canViewContent && onOpenFollowers?.(selectedUser.id, selectedUser.username, 'followers')}
+                            >
                                 <span className="text-lg font-bold text-slate-800">{selectedUser.followers || 0}</span>
                                 <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Seguidores</span>
                             </div>
                             <div className="w-px h-6 bg-slate-200"></div>
-                            <div className="flex flex-col items-center">
+                            <div
+                                className={`flex flex-col items-center ${canViewContent ? 'cursor-pointer hover:opacity-70 transition-opacity active:scale-95' : ''}`}
+                                onClick={() => canViewContent && onOpenFollowers?.(selectedUser.id, selectedUser.username, 'following')}
+                            >
                                 <span className="text-lg font-bold text-slate-800">{selectedUser.following || 0}</span>
                                 <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Seguindo</span>
                             </div>
@@ -402,7 +409,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ targetUsername, onBack, onM
                                 onClick={async () => {
                                     const counts = await fetchUserCounts(user.id);
                                     setSelectedUser({ ...user, ...counts });
-                                    fetchUserPosts(user.id);
+                                    fetchUserPosts(user.id, user.username, user.avatar_url);
                                 }}
                                 className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-between active:scale-[0.99]"
                             >

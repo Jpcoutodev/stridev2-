@@ -17,6 +17,7 @@ import NewChallengeModal from './components/NewChallengeModal';
 import OnboardingScreen from './components/OnboardingScreen';
 import AdminScreen from './components/AdminScreen';
 import DeleteAccountScreen from './components/DeleteAccountScreen';
+import FollowersScreen from './components/FollowersScreen';
 import { useToast } from './components/Toast';
 import PostSkeleton from './components/PostSkeleton';
 import {
@@ -36,8 +37,9 @@ const App: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Navigation State
-  const [currentView, setCurrentView] = useState<'home' | 'nutrition' | 'stopwatch' | 'profile' | 'search' | 'messages' | 'notifications' | 'recipes' | 'legal' | 'challenges' | 'admin' | 'delete_account'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'nutrition' | 'stopwatch' | 'profile' | 'search' | 'messages' | 'notifications' | 'recipes' | 'legal' | 'challenges' | 'admin' | 'delete_account' | 'followers'>('home');
   const [initialLegalTab, setInitialLegalTab] = useState<'terms' | 'privacy' | 'security' | 'lgpd'>('terms');
+  const [initialFollowersTab, setInitialFollowersTab] = useState<'followers' | 'following'>('followers');
 
   // Home Tab State
   const [activeTab, setActiveTab] = useState<'myStride' | 'community'>('myStride');
@@ -60,6 +62,7 @@ const App: React.FC = () => {
   // Follow relationships for filtering private posts
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [followerIds, setFollowerIds] = useState<Set<string>>(new Set());
+  const [blockedUsernames, setBlockedUsernames] = useState<Set<string>>(new Set());
   const [selectedPostType, setSelectedPostType] = useState<'image' | 'measurement' | 'text' | 'workout'>('image');
   const [editingPost, setEditingPost] = useState<PostModel | null>(null);
   const [communityStories, setCommunityStories] = useState<any[]>([]); // Real stories data
@@ -67,8 +70,10 @@ const App: React.FC = () => {
   // Profile Navigation State
   const [targetProfileUser, setTargetProfileUser] = useState<string | null>(null);
   const [targetMessageUser, setTargetMessageUser] = useState<string | null>(null);
+  const [targetFollowersUser, setTargetFollowersUser] = useState<{ id: string; username: string } | null>(null);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [selectedPostFromNotification, setSelectedPostFromNotification] = useState<PostModel | null>(null);
 
   // Scroll Logic for Header Hiding
   const [showHeader, setShowHeader] = useState(true);
@@ -88,7 +93,8 @@ const App: React.FC = () => {
       if (session) {
         fetchUserProfile(session.user.id);
         fetchRelationships(session.user.id);
-        fetchCommunityStories(session.user.id); // Added
+        fetchCommunityStories(session.user.id);
+        fetchBlockedUsers(session.user.id);
       }
     });
 
@@ -99,12 +105,14 @@ const App: React.FC = () => {
         fetchUserProfile(session.user.id);
         fetchRelationships(session.user.id);
         fetchCommunityStories(session.user.id);
+        fetchBlockedUsers(session.user.id);
         fetchPosts();
         fetchUnreadNotificationsCount(session.user.id);
         fetchUnreadMessagesCount(session.user.id);
       } else {
         setFollowingIds(new Set());
         setFollowerIds(new Set());
+        setBlockedUsernames(new Set());
         setUserProfile(null);
         setMyPostList([]);
         setUnreadNotificationsCount(0);
@@ -266,6 +274,21 @@ const App: React.FC = () => {
       }
     } catch (err) {
       console.error('Error fetching relationships:', err);
+    }
+  };
+
+  const fetchBlockedUsers = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('blocked_users')
+        .select('blocked_username')
+        .eq('user_id', userId);
+
+      if (data) {
+        setBlockedUsernames(new Set(data.map((b: any) => b.blocked_username)));
+      }
+    } catch (err) {
+      console.error('Error fetching blocked users:', err);
     }
   };
 
@@ -438,7 +461,7 @@ const App: React.FC = () => {
             return followingIds.has(p.userId);
           }
           return false;
-        });
+        }).filter(p => !blockedUsernames.has(p.username)); // Filter out blocked users
 
         const filteredMyPosts = userId ? mappedPosts.filter(p => p.userId === userId) : [];
 
@@ -554,11 +577,37 @@ const App: React.FC = () => {
     setBlockConfirmationUser(username);
   };
 
-  const confirmBlockUser = () => {
-    if (blockConfirmationUser) {
-      setCommunityPostList(prev => prev.filter(p => p.username !== blockConfirmationUser));
-      showToast(`Você deixou de ver publicações de ${blockConfirmationUser}`, 'success');
-      setBlockConfirmationUser(null);
+  const confirmBlockUser = async () => {
+    if (blockConfirmationUser && session?.user?.id) {
+      try {
+        // 1. Find the user ID from the username
+        const { data: blockedProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', blockConfirmationUser)
+          .single();
+
+        if (blockedProfile) {
+          // 2. Save to database
+          await supabase
+            .from('blocked_users')
+            .upsert({
+              user_id: session.user.id,
+              blocked_user_id: blockedProfile.id,
+              blocked_username: blockConfirmationUser
+            }, { onConflict: 'user_id,blocked_user_id' });
+        }
+
+        // 3. Update local state
+        setBlockedUsernames(prev => new Set([...prev, blockConfirmationUser]));
+        setCommunityPostList(prev => prev.filter(p => p.username !== blockConfirmationUser));
+        showToast(`Você deixou de ver publicações de ${blockConfirmationUser}`, 'success');
+      } catch (error) {
+        console.error('Erro ao bloquear usuário:', error);
+        showToast('Erro ao ocultar publicações', 'error');
+      } finally {
+        setBlockConfirmationUser(null);
+      }
     }
   };
 
@@ -922,7 +971,16 @@ const App: React.FC = () => {
         {currentView === 'home' && renderHomeContent()}
         {currentView === 'nutrition' && <NutritionScreen />}
         {currentView === 'stopwatch' && <StopwatchScreen />}
-        {currentView === 'profile' && <ProfileScreen onLogout={handleLogout} onUpdate={handleProfileUpdate} />}
+        {currentView === 'profile' && (
+          <ProfileScreen
+            onLogout={handleLogout}
+            onUpdate={handleProfileUpdate}
+            onOpenFollowers={(tab) => {
+              setInitialFollowersTab(tab);
+              setCurrentView('followers');
+            }}
+          />
+        )}
         {currentView === 'search' && (
           <SearchScreen
             targetUsername={targetProfileUser}
@@ -930,6 +988,11 @@ const App: React.FC = () => {
             onMessageClick={(userId) => {
               setTargetMessageUser(userId);
               setCurrentView('messages');
+            }}
+            onOpenFollowers={(userId, username, tab) => {
+              setTargetFollowersUser({ id: userId, username });
+              setInitialFollowersTab(tab);
+              setCurrentView('followers');
             }}
           />
         )}
@@ -950,13 +1013,44 @@ const App: React.FC = () => {
               setTargetProfileUser(username);
               setCurrentView('search');
             }}
-            onNotificationClick={(notif) => {
+            onNotificationClick={async (notif) => {
               if (notif.type === 'message') {
                 setTargetMessageUser(notif.actor_id);
                 setCurrentView('messages');
+              } else if ((notif.type === 'like' || notif.type === 'comment') && notif.post_id) {
+                // Fetch the post and show it
+                const { data } = await supabase
+                  .from('posts')
+                  .select(`*, profiles (username, avatar_url)`)
+                  .eq('id', notif.post_id)
+                  .single();
+                if (data) {
+                  const mappedPost: PostModel = {
+                    id: data.id,
+                    userId: data.user_id,
+                    type: data.type,
+                    username: data.profiles?.username || 'Usuário',
+                    userAvatar: data.profiles?.avatar_url || 'https://via.placeholder.com/150',
+                    date: data.created_at,
+                    clapCount: data.clap_count || 0,
+                    caption: data.caption,
+                    imageUrl: data.image_url,
+                    weight: data.weight,
+                    measurements: data.measurements,
+                    workoutItems: data.workout_items,
+                    comments: []
+                  };
+                  setSelectedPostFromNotification(mappedPost);
+                  setCurrentView('home');
+                }
               } else {
                 setTargetProfileUser(notif.actor?.username);
                 setCurrentView('search');
+              }
+            }}
+            onMarkAsRead={() => {
+              if (session?.user?.id) {
+                fetchUnreadNotificationsCount(session.user.id);
               }
             }}
           />
@@ -965,6 +1059,26 @@ const App: React.FC = () => {
         {currentView === 'challenges' && <ChallengesScreen onBack={() => setCurrentView('home')} />}
         {currentView === 'admin' && <AdminScreen onViewApp={() => setCurrentView('home')} />}
         {currentView === 'legal' && <LegalScreen onBack={() => setCurrentView('home')} />}
+        {currentView === 'followers' && (
+          <FollowersScreen
+            onBack={() => {
+              if (targetFollowersUser) {
+                setTargetFollowersUser(null);
+                setCurrentView('search');
+              } else {
+                setCurrentView('profile');
+              }
+            }}
+            onUserClick={(username) => {
+              setTargetProfileUser(username);
+              setTargetFollowersUser(null);
+              setCurrentView('search');
+            }}
+            initialTab={initialFollowersTab}
+            targetUserId={targetFollowersUser?.id}
+            targetUsername={targetFollowersUser?.username}
+          />
+        )}
 
         {/* Bottom Navigation */}
         <div className={`sticky bottom-0 bg-white border-t border-slate-100 px-4 py-2 flex justify-between items-center z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-in-out ${showHeader ? 'translate-y-0' : 'translate-y-full'}`}>
@@ -1071,6 +1185,32 @@ const App: React.FC = () => {
                 >
                   Bloquear
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Post from Notification Modal */}
+        {selectedPostFromNotification && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-md max-h-[90vh] rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                <h3 className="text-lg font-bold text-slate-900">Publicação</h3>
+                <button
+                  onClick={() => setSelectedPostFromNotification(null)}
+                  className="p-2 rounded-full hover:bg-slate-100 transition-colors"
+                >
+                  <X size={20} className="text-slate-500" />
+                </button>
+              </div>
+              <div className="overflow-y-auto flex-1 no-scrollbar">
+                <PostCard
+                  post={selectedPostFromNotification}
+                  onUsernameClick={(username) => {
+                    setSelectedPostFromNotification(null);
+                    handleNavigateToProfile(username);
+                  }}
+                />
               </div>
             </div>
           </div>
