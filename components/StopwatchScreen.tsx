@@ -78,19 +78,55 @@ const StopwatchScreen: React.FC = () => {
     };
   }, [isRunning, isResting, isIntervalRunning]);
 
-  // ... (Audio Engine Code omitted for brevity, logic remains the same)
-  // Re-implementing simplified Audio Engine for context
+  // Audio Engine with distinct sounds for work vs rest
   const playSound = (type: 'tick' | 'work' | 'rest' | 'finish' | 'click') => {
     if (isMuted) return;
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContext) return;
     const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.1);
+
+    const playBeep = (frequency: number, duration: number, startTime: number, volume: number = 0.5) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(frequency, startTime);
+      gain.gain.setValueAtTime(volume, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    };
+
+    switch (type) {
+      case 'work':
+        // Treino: Som mais agudo e energético - triplo beep rápido ascendente
+        playBeep(880, 0.12, ctx.currentTime, 0.6);       // A5
+        playBeep(1047, 0.12, ctx.currentTime + 0.15, 0.6); // C6
+        playBeep(1319, 0.18, ctx.currentTime + 0.30, 0.7); // E6
+        break;
+      case 'rest':
+        // Descanso: Som mais grave e calmo - duplo beep descendente
+        playBeep(523, 0.15, ctx.currentTime, 0.5);       // C5
+        playBeep(392, 0.25, ctx.currentTime + 0.20, 0.4); // G4
+        break;
+      case 'finish':
+        // Finalizado: Fanfarra curta
+        playBeep(523, 0.1, ctx.currentTime, 0.5);
+        playBeep(659, 0.1, ctx.currentTime + 0.1, 0.5);
+        playBeep(784, 0.1, ctx.currentTime + 0.2, 0.5);
+        playBeep(1047, 0.3, ctx.currentTime + 0.3, 0.6);
+        break;
+      case 'tick':
+        // Contagem regressiva: Beep curto médio
+        playBeep(660, 0.08, ctx.currentTime, 0.4);
+        break;
+      case 'click':
+      default:
+        // Click de interface: Beep muito curto
+        playBeep(500, 0.05, ctx.currentTime, 0.3);
+        break;
+    }
   };
 
   // ==========================================
