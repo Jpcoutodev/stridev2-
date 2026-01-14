@@ -536,7 +536,21 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onOpenLegal }) => {
             </div>
 
             <p className="mt-8 text-slate-400 text-xs font-medium text-center">
-                Ao continuar, você concorda com nossos Termos de Serviço.
+                Ao continuar, você concorda com nossos{' '}
+                <button
+                    onClick={onOpenLegal}
+                    className="text-cyan-600 hover:text-cyan-700 underline font-semibold"
+                >
+                    Termos de Serviço
+                </button>
+                {' '}e{' '}
+                <button
+                    onClick={onOpenLegal}
+                    className="text-cyan-600 hover:text-cyan-700 underline font-semibold"
+                >
+                    Política de Privacidade
+                </button>
+                .
                 <br />Stride Up v4.0
             </p>
 
