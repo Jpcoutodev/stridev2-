@@ -217,7 +217,61 @@ const App: React.FC = () => {
         console.log(`Profile not found, retrying in 1s... (Attempt ${retryCount + 1}/3)`);
         setTimeout(() => fetchUserProfile(userId, retryCount + 1), 1000);
       } else {
-        console.error('Error fetching profile after retries:', error);
+        // FALLBACK: Create profile if trigger didn't work (common for OAuth users)
+        console.log('Profile not found after retries, creating fallback profile...');
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const metadata = user.user_metadata || {};
+            const email = user.email || '';
+
+            // Generate username from metadata or email
+            const generatedUsername = metadata.user_name ||
+              metadata.name?.toLowerCase().replace(/\s+/g, '_') ||
+              email.split('@')[0] + '_' + Math.random().toString(36).substring(2, 6);
+
+            const profilePayload = {
+              id: userId,
+              full_name: metadata.full_name || metadata.name || '',
+              avatar_url: metadata.avatar_url || metadata.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200',
+              username: generatedUsername.substring(0, 30), // Limit length
+              onboarding_completed: false,
+              created_at: new Date().toISOString()
+            };
+
+            const { data: newProfile, error: insertError } = await supabase
+              .from('profiles')
+              .insert(profilePayload)
+              .select()
+              .single();
+
+            if (insertError) {
+              // Maybe profile was created by trigger in the meantime, try fetching again
+              if (insertError.code === '23505') { // Duplicate key
+                console.log('Profile already exists, fetching again...');
+                const { data: existingProfile } = await supabase
+                  .from('profiles')
+                  .select('*')
+                  .eq('id', userId)
+                  .single();
+                if (existingProfile) {
+                  setUserProfile(existingProfile);
+                  if (existingProfile.onboarding_completed !== true) {
+                    setShowOnboarding(true);
+                  }
+                  return;
+                }
+              }
+              console.error('Error creating fallback profile:', insertError);
+            } else if (newProfile) {
+              console.log('Fallback profile created successfully');
+              setUserProfile(newProfile);
+              setShowOnboarding(true); // Always show onboarding for new users
+            }
+          }
+        } catch (fallbackError) {
+          console.error('Fallback profile creation failed:', fallbackError);
+        }
       }
     }
   };
